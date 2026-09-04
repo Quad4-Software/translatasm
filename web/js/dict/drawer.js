@@ -46,7 +46,6 @@ export function mountDictDrawer(opts) {
     document.querySelector('[data-dict-toggle]') || root.querySelector('[data-dict-toggle]')
   );
   const panel = /** @type {HTMLElement} */ (root.querySelector('[data-dict-panel]'));
-  const closeBtn = /** @type {HTMLButtonElement | null} */ (root.querySelector('[data-dict-close]'));
   const form = /** @type {HTMLFormElement} */ (root.querySelector('[data-dict-form]'));
   const input = /** @type {HTMLInputElement} */ (root.querySelector('[data-dict-input]'));
   const statusEl = /** @type {HTMLElement} */ (root.querySelector('[data-dict-status]'));
@@ -80,7 +79,9 @@ export function mountDictDrawer(opts) {
       refreshGloss().catch(() => {});
     }
   });
-  closeBtn?.addEventListener('click', () => setOpen(false));
+  root.querySelectorAll('[data-dict-close]').forEach((el) => {
+    el.addEventListener('click', () => setOpen(false));
+  });
   document.addEventListener('keydown', (ev) => {
     if (ev.key === 'Escape' && open) {
       setOpen(false);
@@ -238,7 +239,11 @@ export function mountDictDrawer(opts) {
     document.body.classList.toggle('dict-sidebar-open', open);
     panel.hidden = false;
     panel.setAttribute('aria-hidden', open ? 'false' : 'true');
-    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    toggle?.setAttribute('aria-expanded', open ? 'true' : 'false');
+    const scrim = /** @type {HTMLElement | null} */ (root.querySelector('.dict-scrim'));
+    if (scrim) {
+      scrim.hidden = !open;
+    }
   }
 
   /**
