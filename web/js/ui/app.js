@@ -1,7 +1,5 @@
 import { createEngine, registerEngine } from '../engine/registry.js';
 import { createBergamotEngine, hasNativeIntGemm } from '../engine/bergamot.js';
-import { createFastPathEngine } from '../engine/fast-path.js';
-import { createChromeTranslatorEngine, hasChromeTranslator } from '../engine/chrome-translator.js';
 import { canTranslate, findDirect, languageLabel } from '../engine/pairs.js';
 import { translateAligned, renderAlignHtml } from '../engine/align.js';
 import {
@@ -23,8 +21,6 @@ import {
 } from './files.js';
 
 registerEngine('bergamot', createBergamotEngine);
-registerEngine('chrome-translator', createChromeTranslatorEngine);
-registerEngine('fast-path', createFastPathEngine);
 
 const STORAGE_KEY = 'translatasm.prefs.v1';
 const LIVE_DEBOUNCE_MIN_MS = 70;
@@ -153,8 +149,8 @@ export async function bootApp() {
   updateCounts();
   syncShareUrl(false);
 
-  engine = createEngine('fast-path');
-  setStatus('Starting translator...');
+  engine = createEngine('bergamot');
+  setStatus('Starting Bergamot...');
   setBusy(true);
   try {
     await engine.load(models[0], (p) => {
@@ -164,11 +160,7 @@ export async function bootApp() {
     });
     await warmPair(effectiveFrom(), els.to.value);
     ready = true;
-    const accel = hasNativeIntGemm()
-      ? 'Firefox native IntGEMM'
-      : hasChromeTranslator()
-        ? 'WASM IntGEMM + Chrome Translator'
-        : 'WASM IntGEMM';
+    const accel = hasNativeIntGemm() ? 'Firefox native IntGEMM' : 'WASM IntGEMM';
     setStatus(`Ready (${accel}). Type to translate.`);
     warmDetector().catch(() => {});
     if (els.source.value.trim()) {
