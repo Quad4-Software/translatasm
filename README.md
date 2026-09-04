@@ -10,12 +10,6 @@ Offline neural machine translation in the browser via Bergamot (Marian NMT) WASM
 
 ![translatasm desktop](docs/screenshots/desktop.png)
 
-<p align="center">
-  <img src="docs/screenshots/mobile.png" alt="translatasm mobile" width="280">
-  &nbsp;
-  <img src="docs/screenshots/dict.png" alt="translatasm dictionary drawer" width="560">
-</p>
-
 ## Languages
 
 English, Bulgarian, Catalan, Chinese, Croatian, Czech, Danish, Dutch, Estonian, Finnish, French, German, Greek, Hungarian, Indonesian, Italian, Japanese, Norwegian, Polish, Portuguese, Romanian, Russian, Slovak, Slovenian, Spanish, Swedish, Turkish, Ukrainian, Vietnamese.
