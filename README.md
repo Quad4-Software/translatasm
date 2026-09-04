@@ -4,7 +4,7 @@ Offline neural machine translation in the browser via Bergamot (Marian NMT) WASM
 
 **27 languages**, 52 direct packs, English pivot for cross pairs (for example Spanish -> French). Text stays on device after models load.
 
-**Live:** [https://translat.quad4.io](https://translate.quad4.io)
+**Live:** [https://translatasm.quad4.io](https://translatasm.quad4.io)
 
 ## Languages
 
