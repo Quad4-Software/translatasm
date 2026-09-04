@@ -218,9 +218,9 @@ function serveStatic(dir) {
         const ext = path.extname(filePath).toLowerCase();
         res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream' });
         fs.createReadStream(filePath).pipe(res);
-      } catch (err) {
+      } catch {
         res.writeHead(500);
-        res.end(String(err));
+        res.end('internal error');
       }
     });
     server.once('error', reject);
