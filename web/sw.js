@@ -1,7 +1,9 @@
 /* translatasm service worker: offline shell + auto-update */
-const CACHE_VERSION = 'translatasm-v0.5.4';
-const SHELL_CACHE = `${CACHE_VERSION}-shell`;
-const ASSET_CACHE = `${CACHE_VERSION}-assets`;
+const APP = 'translatasm';
+const SHELL_VERSION = 'dev';
+const ASSET_VERSION = 'v1';
+const SHELL_CACHE = `${APP}-shell-${SHELL_VERSION}`;
+const ASSET_CACHE = `${APP}-assets-${ASSET_VERSION}`;
 
 const PRECACHE = [
   '/',
@@ -58,22 +60,38 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     (async () => {
       const keys = await caches.keys();
-      await Promise.all(
-        keys
-          .filter((key) => key.startsWith('translatasm-') && !key.startsWith(CACHE_VERSION))
-          .map((key) => caches.delete(key)),
-      );
+      await Promise.all(keys.filter(isStaleCacheKey).map((key) => caches.delete(key)));
       await self.clients.claim();
     })(),
   );
 });
+
+/**
+ * @param {string} key
+ * @returns {boolean}
+ */
+function isStaleCacheKey(key) {
+  if (key === SHELL_CACHE || key === ASSET_CACHE) {
+    return false;
+  }
+  if (key.startsWith(`${APP}-shell-`) || key.startsWith(`${APP}-assets-`)) {
+    return true;
+  }
+  return key.startsWith(`${APP}-v`);
+}
 
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
   if (event.data && event.data.type === 'GET_VERSION') {
-    event.source && event.source.postMessage({ type: 'SW_VERSION', version: CACHE_VERSION });
+    event.source &&
+      event.source.postMessage({
+        type: 'SW_VERSION',
+        version: SHELL_VERSION,
+        shell: SHELL_VERSION,
+        assets: ASSET_VERSION,
+      });
   }
 });
 
@@ -114,7 +132,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  event.respondWith(staleWhileRevalidate(req, SHELL_CACHE));
+  event.respondWith(networkFirst(req, SHELL_CACHE));
 });
 
 async function networkOnly(req) {
@@ -156,18 +174,4 @@ async function cacheFirst(req, cacheName) {
     cache.put(req, fresh.clone());
   }
   return fresh;
-}
-
-async function staleWhileRevalidate(req, cacheName) {
-  const cache = await caches.open(cacheName);
-  const cached = await cache.match(req);
-  const network = fetch(req)
-    .then((fresh) => {
-      if (fresh && fresh.ok) {
-        cache.put(req, fresh.clone());
-      }
-      return fresh;
-    })
-    .catch(() => cached);
-  return cached || network;
 }

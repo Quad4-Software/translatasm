@@ -37,7 +37,7 @@ PLAYWRIGHT_PKG ?= playwright@1.62.1
 PLAYWRIGHT_INSTALL_ARGS ?=
 TOOLS_DIR     := .tools
 
-.PHONY: all assets dicts catalog build run docker docker-push badges test test-go test-js lint sec check fmt vet staticcheck clean help bench screenshots
+.PHONY: all assets dicts catalog stamp-sw build run docker docker-push badges test test-go test-js lint sec check fmt vet staticcheck clean help bench screenshots
 
 all: assets build
 
@@ -46,6 +46,7 @@ help:
 		'assets        fetch Bergamot WASM + all language packs + fonts' \
 		'dicts         build offline dictionary packs (Kaikki + FreeDict)' \
 		'catalog       write web/catalog.json for static hosting' \
+		'stamp-sw      set SHELL_VERSION in web/sw.js (SHELL_VERSION=... or git sha)' \
 		'build         compile $(BIN)' \
 		'run           ensure assets then serve :8080' \
 		'docker        build $(IMAGE) with full offline assets' \
@@ -58,6 +59,14 @@ help:
 		'sec           gosec + govulncheck' \
 		'check         test + lint + sec' \
 		'clean         remove bin/'
+
+stamp-sw:
+	@SHELL_VERSION="$${SHELL_VERSION:-$(VERSION)}"; \
+	if [ -z "$$SHELL_VERSION" ] || [ "$$SHELL_VERSION" = "0.1.0" ]; then \
+	  SHELL_VERSION=$$(git rev-parse --short=12 HEAD 2>/dev/null || echo dev); \
+	fi; \
+	sed -i "s/const SHELL_VERSION = '[^']*'/const SHELL_VERSION = '$$SHELL_VERSION'/" web/sw.js; \
+	printf 'stamped SHELL_VERSION=%s\n' "$$SHELL_VERSION"
 
 assets:
 	@bash scripts/fetch-assets.sh
