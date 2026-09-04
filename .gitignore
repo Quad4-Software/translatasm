@@ -1,0 +1,14 @@
+bin/
+dist/
+*.exe
+*.test
+*.out
+.DS_Store
+.idea/
+.vscode/
+coverage.out
+coverage.html
+web/vendor/bergamot/
+web/models/
+!web/models/.gitkeep
+!web/vendor/.gitkeep
