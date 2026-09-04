@@ -10,7 +10,7 @@ import {
   CancelledError,
 } from '/vendor/bergamot/translator.js';
 import { splitChunks } from './pairs.js';
-import { needsCjkSegmentation, segmentSentences } from './segment.js';
+import { sharedMemory, translateIncremental } from './incremental.js';
 
 /**
  * Loads models from the local static registry at /models/registry.json.
@@ -204,11 +204,29 @@ export function createBergamotEngine() {
   }
 
   /**
+   * True when every keep pair is loaded and nothing else needs freeing.
+   * @param {string[]} keep
+   * @returns {boolean}
+   */
+  function pruneNeeded(keep) {
+    const keepSet = new Set(keep);
+    for (const key of loadedPairs) {
+      if (!keepSet.has(key)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
    * Drop WASM models and JS buffers that are not the active route.
    * @param {LatencyOptimisedTranslator} t
    * @param {string[]} keep
    */
   async function pruneModels(t, keep) {
+    if (!pruneNeeded(keep)) {
+      return;
+    }
     const keepSet = new Set(keep);
     for (const key of [...loadedPairs]) {
       if (keepSet.has(key)) {
@@ -235,6 +253,77 @@ export function createBergamotEngine() {
       } catch {
         // ignore malformed keys
       }
+    }
+  }
+
+  /**
+   * @param {LatencyOptimisedTranslator} t
+   * @param {string} from
+   * @param {string} to
+   * @param {string} text
+   * @param {boolean} html
+   * @param {AbortSignal} [signal]
+   * @returns {Promise<string>}
+   */
+  async function translateRaw(t, from, to, text, html, signal) {
+    const result = await t.translate(
+      {
+        from,
+        to,
+        text,
+        html,
+      },
+      { signal },
+    );
+    return result?.target?.text ?? '';
+  }
+
+  /**
+   * @param {LatencyOptimisedTranslator} t
+   * @param {string} from
+   * @param {string} to
+   * @param {string[]} sentences
+   * @param {AbortSignal} [signal]
+   * @returns {Promise<string[]>}
+   */
+  async function translateBatch(t, from, to, sentences, signal) {
+    if (!sentences.length) {
+      return [];
+    }
+    if (sentences.length === 1) {
+      return [await translateRaw(t, from, to, sentences[0], false, signal)];
+    }
+    const joined = await translateRaw(t, from, to, sentences.join('\n'), false, signal);
+    const parts = joined.split('\n');
+    if (parts.length === sentences.length) {
+      return parts;
+    }
+    /** @type {string[]} */
+    const out = [];
+    for (const sentence of sentences) {
+      if (signal?.aborted) {
+        const err = new Error('Translation cancelled');
+        err.name = 'CancelledError';
+        throw err;
+      }
+      out.push(await translateRaw(t, from, to, sentence, false, signal));
+    }
+    return out;
+  }
+
+  /**
+   * @param {string} from
+   * @param {string} to
+   * @param {string[]} keep
+   */
+  function markLoaded(from, to, keep) {
+    loadedPairs.add(pairKey(from, to));
+    if (from !== 'en' && to !== 'en') {
+      loadedPairs.add(pairKey(from, 'en'));
+      loadedPairs.add(pairKey('en', to));
+    }
+    for (const key of keep) {
+      loadedPairs.add(key);
     }
   }
 
@@ -278,51 +367,27 @@ export function createBergamotEngine() {
       }
       await pruneModels(t, keep);
 
+      if (lastFrom && lastTo && (lastFrom !== from || lastTo !== to)) {
+        sharedMemory.clearPair(lastFrom, lastTo);
+      }
       lastFrom = from;
       lastTo = to;
 
-      let workText = raw;
-      if (!opts.html && needsCjkSegmentation(from)) {
-        workText = segmentSentences(raw, from).join('\n');
-      }
+      const html = Boolean(opts.html);
 
-      const chunks = splitChunks(workText, opts.chunkChars ?? 1100, {
-        html: Boolean(opts.html),
-        lang: from,
-      });
-      /** @type {string[]} */
-      const parts = [];
-      const total = chunks.length;
-
-      for (let i = 0; i < total; i += 1) {
-        opts.onProgress?.({
-          status: 'translating',
-          progress: 0.2 + (0.75 * i) / Math.max(total, 1),
-          file: `${from}${to}`,
-        });
+      /**
+       * @param {string} chunk
+       * @param {AbortSignal} [signal]
+       */
+      async function runChunk(chunk, signal) {
         try {
-          const result = await t.translate(
-            {
-              from,
-              to,
-              text: chunks[i],
-              html: Boolean(opts.html),
-            },
-            { signal: opts.signal },
-          );
-          parts.push(result?.target?.text ?? '');
-          loadedPairs.add(pairKey(from, to));
-          if (from !== 'en' && to !== 'en') {
-            loadedPairs.add(pairKey(from, 'en'));
-            loadedPairs.add(pairKey('en', to));
+          const out = await translateRaw(t, from, to, chunk, html, signal);
+          markLoaded(from, to, keep);
+          for (const key of keep) {
+            const [kf, kt] = key.split('|');
+            dropPairBuffers(t, kf, kt);
           }
-          // Model is resident in WASM. Drop JS copies to avoid ~20MB dual retention.
-          if (i === 0) {
-            for (const key of keep) {
-              const [kf, kt] = key.split('|');
-              dropPairBuffers(t, kf, kt);
-            }
-          }
+          return out;
         } catch (err) {
           if (err instanceof SupersededError || err instanceof CancelledError) {
             throw err;
@@ -335,17 +400,75 @@ export function createBergamotEngine() {
           }
           throw err;
         }
-        if (opts.onPartial) {
-          opts.onPartial({ text: parts.join('\n\n'), from, to });
-        }
       }
 
-      opts.onProgress?.({ status: 'done', progress: 1 });
-      return {
-        text: parts.join('\n\n'),
-        from,
-        to,
-      };
+      if (html || opts.incremental === false) {
+        const chunks = splitChunks(raw, opts.chunkChars ?? 1100, {
+          html,
+          lang: from,
+        });
+        /** @type {string[]} */
+        const parts = [];
+        const total = chunks.length;
+        for (let i = 0; i < total; i += 1) {
+          opts.onProgress?.({
+            status: 'translating',
+            progress: 0.2 + (0.75 * i) / Math.max(total, 1),
+            file: `${from}${to}`,
+          });
+          parts.push(await runChunk(chunks[i], opts.signal));
+          if (opts.onPartial) {
+            opts.onPartial({ text: parts.join(html ? '\n\n' : '\n'), from, to });
+          }
+        }
+        opts.onProgress?.({ status: 'done', progress: 1 });
+        return { text: parts.join(html ? '\n\n' : '\n'), from, to };
+      }
+
+      /**
+       * @param {string[]} sentences
+       * @param {AbortSignal} [signal]
+       */
+      async function batchFn(sentences, signal) {
+        const out = await translateBatch(t, from, to, sentences, signal);
+        markLoaded(from, to, keep);
+        for (const key of keep) {
+          const [kf, kt] = key.split('|');
+          dropPairBuffers(t, kf, kt);
+        }
+        return out;
+      }
+
+      try {
+        const result = await translateIncremental(raw, {
+          from,
+          to,
+          html: false,
+          signal: opts.signal,
+          tm: sharedMemory,
+          batchSize: 12,
+          translateBatch: batchFn,
+          onPartial: opts.onPartial,
+          onProgress: opts.onProgress,
+        });
+        return {
+          text: result.text,
+          from,
+          to,
+          sentences: result.sentences,
+        };
+      } catch (err) {
+        if (err instanceof SupersededError || err instanceof CancelledError) {
+          throw err;
+        }
+        if (err && typeof err === 'object' && 'name' in err) {
+          const name = String(err.name);
+          if (name === 'SupersededError' || name === 'CancelledError' || name === 'AbortError') {
+            throw err;
+          }
+        }
+        throw err;
+      }
     },
 
     /**
@@ -395,6 +518,7 @@ export function createBergamotEngine() {
       lastFrom = '';
       lastTo = '';
       loadedPairs.clear();
+      sharedMemory.clear();
       if (t) {
         t.delete().catch(() => {});
       }

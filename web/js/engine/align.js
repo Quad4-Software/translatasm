@@ -8,14 +8,18 @@ import { splitSentences } from '../engine/pairs.js';
  * @typedef {{source: string, target: string}} AlignedSentence
  */
 
+const DEFAULT_BATCH = 12;
+
 /**
- * Build aligned sentence pairs by translating each sentence separately.
+ * Build aligned sentence pairs by translating sentences in batches.
  * @param {string} text
  * @param {{
  *   from: string,
  *   to: string,
  *   html?: boolean,
+ *   batchSize?: number,
  *   translateOne: (sentence: string) => Promise<string>,
+ *   translateBatch?: (sentences: string[]) => Promise<string[]>,
  *   onPartial?: (sentences: AlignedSentence[]) => void,
  *   signal?: AbortSignal,
  * }} opts
@@ -35,16 +39,42 @@ export async function translateAligned(text, opts) {
     return { text: out, sentences: [{ source: text, target: out }] };
   }
 
+  const batchSize = Math.max(1, opts.batchSize ?? DEFAULT_BATCH);
   /** @type {AlignedSentence[]} */
   const sentences = [];
-  for (const source of sources) {
+
+  for (let i = 0; i < sources.length; i += batchSize) {
     if (opts.signal?.aborted) {
       break;
     }
-    const target = await opts.translateOne(source);
-    sentences.push({ source, target });
+    const batch = sources.slice(i, i + batchSize);
+    /** @type {string[]} */
+    let targets;
+    if (opts.translateBatch) {
+      targets = await opts.translateBatch(batch);
+    } else if (batch.length === 1) {
+      targets = [await opts.translateOne(batch[0])];
+    } else {
+      const joined = await opts.translateOne(batch.join('\n'));
+      const parts = joined.split('\n');
+      if (parts.length === batch.length) {
+        targets = parts;
+      } else {
+        targets = [];
+        for (const source of batch) {
+          if (opts.signal?.aborted) {
+            break;
+          }
+          targets.push(await opts.translateOne(source));
+        }
+      }
+    }
+    for (let j = 0; j < batch.length; j += 1) {
+      sentences.push({ source: batch[j], target: targets[j] ?? '' });
+    }
     opts.onPartial?.(sentences);
   }
+
   return {
     text: sentences.map((s) => s.target).join(' '),
     sentences,

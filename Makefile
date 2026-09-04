@@ -77,6 +77,7 @@ test-js:
 	$(NODE) --test \
 		web/js/engine/pairs.test.mjs \
 		web/js/engine/align.test.mjs \
+		web/js/engine/incremental.test.mjs \
 		web/js/dict/lookup.test.mjs \
 		web/js/dict/glossary.test.mjs \
 		web/js/dict/vocab.test.mjs \
