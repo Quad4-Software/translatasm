@@ -14,9 +14,11 @@ function setBusy(on) {
 async function send(msg) { return chrome.runtime.sendMessage(msg); }
 
 const settings = await send({ type: "get-settings" });
+if (settings?.updateAvailable && settings?.remoteVersion) {
+  setStatus(`Update ${settings.remoteVersion} available in Settings`);
+}
 if (settings?.from) $("from").value = settings.from;
 if (settings?.to) $("to").value = settings.to;
-if (settings?.bridgeOrigin) $("bridge").value = settings.bridgeOrigin;
 
 async function persist() {
   await send({
@@ -24,14 +26,12 @@ async function persist() {
     settings: {
       from: $("from").value,
       to: $("to").value,
-      bridgeOrigin: $("bridge").value.trim() || undefined,
     },
   });
 }
 
 $("from").addEventListener("change", persist);
 $("to").addEventListener("change", persist);
-$("bridge").addEventListener("change", persist);
 
 $("btn-swap").addEventListener("click", async () => {
   const a = $("from").value;
@@ -117,4 +117,9 @@ $("btn-page").addEventListener("click", async () => {
 $("btn-restore").addEventListener("click", async () => {
   const res = await send({ type: "restore-page" });
   setStatus(res?.ok ? "Restored." : (res?.error || "Error"));
+});
+
+
+$("btn-settings").addEventListener("click", async () => {
+  await send({ type: "open-options" });
 });
