@@ -158,7 +158,10 @@ func TestGzipJSContentType(t *testing.T) {
 	ts := httptest.NewServer(srv.Handler())
 	t.Cleanup(ts.Close)
 
-	req, err := http.NewRequest(http.MethodGet, ts.URL+"/app.js", http.NoBody)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	t.Cleanup(cancel)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, ts.URL+"/app.js", http.NoBody)
 	if err != nil {
 		t.Fatal(err)
 	}
