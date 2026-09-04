@@ -24,3 +24,5 @@ web/dicts/bi/**
 !web/dicts/bi/
 !web/dicts/bi/enes.json
 !web/dicts/bi/esen.json
+__pycache__/
+*.py[cod]
