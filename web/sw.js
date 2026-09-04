@@ -1,5 +1,5 @@
 /* translatasm service worker: offline shell + auto-update */
-const CACHE_VERSION = 'translatasm-v0.4.0';
+const CACHE_VERSION = 'translatasm-v0.5.0';
 const SHELL_CACHE = `${CACHE_VERSION}-shell`;
 const ASSET_CACHE = `${CACHE_VERSION}-assets`;
 
@@ -11,14 +11,21 @@ const PRECACHE = [
   '/js/main.js',
   '/js/pwa.js',
   '/js/ui/app.js',
+  '/js/ui/urlstate.js',
+  '/js/ui/files.js',
+  '/js/detect/langdetect.js',
   '/js/engine/registry.js',
   '/js/engine/types.js',
   '/js/engine/bergamot.js',
+  '/js/engine/bergamot-firefox.js',
   '/js/engine/pairs.js',
+  '/js/engine/align.js',
+  '/js/engine/segment.js',
   '/js/dict/registry.js',
   '/js/dict/packs.js',
   '/js/dict/lookup.js',
   '/js/dict/vocab.js',
+  '/js/dict/glossary.js',
   '/js/dict/drawer.js',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
@@ -30,8 +37,6 @@ const PRECACHE = [
   '/fonts/plex-greek-400.woff2',
   '/fonts/plex-greek-600.woff2',
   '/icons/favicon.ico',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png',
   '/vendor/bergamot/translator.js',
   '/vendor/bergamot/worker/translator-worker.js',
   '/models/registry.json',

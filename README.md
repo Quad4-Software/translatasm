@@ -2,15 +2,21 @@
 
 Offline neural machine translation in the browser via Bergamot (Marian NMT) WASM.
 
-**27 languages**, 52 direct packs, English pivot for cross pairs (for example Spanish -> French). Text stays on device after models load.
+**29 languages** (includes Chinese and Japanese when CJK packs are fetched), 56 direct packs with English pivot for cross pairs. Text stays on device after models load.
 
 **Live:** [https://translatasm.quad4.io](https://translatasm.quad4.io)
 
 ## Languages
 
-English, Bulgarian, Catalan, Croatian, Czech, Danish, Dutch, Estonian, Finnish, French, German, Greek, Hungarian, Indonesian, Italian, Norwegian, Polish, Portuguese, Romanian, Russian, Slovak, Slovenian, Spanish, Swedish, Turkish, Ukrainian, Vietnamese.
+English, Bulgarian, Catalan, Chinese, Croatian, Czech, Danish, Dutch, Estonian, Finnish, French, German, Greek, Hungarian, Indonesian, Italian, Japanese, Norwegian, Polish, Portuguese, Romanian, Russian, Slovak, Slovenian, Spanish, Swedish, Turkish, Ukrainian, Vietnamese.
 
-Chinese and Japanese are not supported yet. Those packs need Firefox Translations WASM 2.x with CJK segmentation. This build ships Bergamot 0.4.9.
+Chinese and Japanese packs need Firefox Translations WASM 2.x with CJK segmentation. Default build ships Bergamot 0.4.9. Enable with:
+
+```bash
+TRANSLATASM_CJK=1 make assets
+```
+
+That fetches 2.x language packs and Firefox Remote Settings WASM into `web/vendor/bergamot-firefox/`. The UI pre-segments CJK via `Intl.Segmenter`. Full drop-in of Firefox WASM 2.x as the sole engine still requires a worker bridge beyond npm 0.4.9.
 
 ## Install (Docker)
 
@@ -22,6 +28,13 @@ docker compose up --build
 ```
 
 Open [http://127.0.0.1:8080](http://127.0.0.1:8080).
+
+Build with full dictionary packs baked in:
+
+```bash
+TRANSLATASM_DICTS=1 make assets
+docker compose up --build
+```
 
 ## Build from source
 
@@ -50,19 +63,28 @@ make test
 make bench
 ```
 
+## Features
+
+- Live typing translate with adaptive debounce and request supersede
+- Auto language detect (native LanguageDetector, optional cld3, heuristic fallback)
+- Shareable URL (`?from=&to=&q=&html=1&auto=1&align=1`)
+- HTML markup-aware translate toggle
+- File drop for `.txt` / `.md` / `.srt` with download
+- Term glossary (do-not-translate) and vocab notebook with spaced review
+- Sentence align mode (click to highlight peer sentence)
+- Offline dictionary drawer (Kaikki + FreeDict)
+
 ## Speed notes
 
 - One Bergamot worker stays warm (no reload on language change)
 - Translation cache (~128k entries) and Firefox native IntGEMM when available
-- Adaptive typing debounce + request supersede
 - Unused language packs are freed from the WASM heap when the pair changes
-- Paragraph chunking for long text
+- Paragraph chunking for long text (HTML-safe splits when HTML mode is on)
 - Direct packs when available, otherwise pivot through English
-- Bergamot has no WebGPU/WebGL path today. Speed comes from WASM SIMD and optional Firefox `mozIntGemm`
 
 ## Offline dictionary
 
-Right-side drawer with bilingual glosses, trimmed monolingual defs, and a personal vocab notebook. Packs lazy-load on first lookup and cache via the service worker (same idea as model packs).
+Right-side drawer with bilingual glosses, trimmed monolingual defs, glossary, and a personal vocab notebook. Packs lazy-load on first lookup and cache via the service worker.
 
 Fixture packs for English and Spanish ship in `web/dicts/`. Build more languages:
 
@@ -72,7 +94,7 @@ make dicts
 TRANSLATASM_DICT_LANGS="en es fr de" make dicts
 ```
 
-Full Kaikki dumps are large. `TRANSLATASM_DICTS=1 make assets` also builds dicts.
+Full Kaikki dumps are large. `TRANSLATASM_DICTS=1 make assets` also builds dicts. Cross-pair glosses fall back through English when a direct FreeDict pack is missing.
 
 ## License
 
