@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://translatasm.quad4.io/sitemap.xml

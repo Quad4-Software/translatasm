@@ -1,7 +1,7 @@
 {
   "name": "translatasm",
   "short_name": "translatasm",
-  "description": "Offline Bergamot translation in your browser. Nothing is uploaded.",
+  "description": "Offline neural machine translation in your browser via Bergamot WASM. 27 languages. Nothing is uploaded.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
