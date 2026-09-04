@@ -136,6 +136,43 @@ func TestPWAAssets(t *testing.T) {
 	}
 }
 
+func TestDictsCacheHeaders(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	dictPath := filepath.Join(root, "dicts", "registry.json")
+	if err := os.MkdirAll(filepath.Dir(dictPath), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(dictPath, []byte(`{"version":1,"mono":{},"bi":{}}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "index.html"), []byte("<html>ok</html>"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg := config.Default()
+	cfg.WebRoot = root
+	cfg.Addr = "127.0.0.1:0"
+	srv, err := server.New(cfg, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	if err != nil {
+		t.Fatalf("new: %v", err)
+	}
+	ts := httptest.NewServer(srv.Handler())
+	t.Cleanup(ts.Close)
+	client := ts.Client()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	t.Cleanup(cancel)
+
+	res := mustGet(ctx, t, client, ts.URL+"/dicts/registry.json")
+	defer closeBody(t, res)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("dicts status %d", res.StatusCode)
+	}
+	if res.Header.Get("Cache-Control") != "public, max-age=31536000, immutable" {
+		t.Fatalf("dicts cache header %q", res.Header.Get("Cache-Control"))
+	}
+}
+
 func TestGzipJSContentType(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()

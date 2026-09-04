@@ -1,0 +1,19 @@
+{
+  "lang": "en",
+  "shard": "r",
+  "entries": {
+    "run": {
+      "w": "run",
+      "pos": "verb",
+      "ipa": "/ɹʌn/",
+      "senses": [
+        {"g": "To move quickly on foot.", "e": "She can run fast.", "s": ["sprint"]},
+        {"g": "To operate or manage."}
+      ],
+      "forms": ["running", "runs", "ran"]
+    },
+    "running": {"w": "running", "points_to": "run"},
+    "runs": {"w": "runs", "points_to": "run"},
+    "ran": {"w": "ran", "points_to": "run"}
+  }
+}

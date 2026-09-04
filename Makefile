@@ -2,6 +2,7 @@
 #
 # Targets:
 #   make assets      download WASM + tiny language packs + fonts
+#   make dicts       build offline dictionary packs (Kaikki + FreeDict)
 #   make catalog     write web/catalog.json for static hosting
 #   make build       compile server
 #   make run         run on :8080
@@ -27,13 +28,14 @@ STATICCHECK   ?= staticcheck
 GOIMPORTS     ?= goimports
 NODE          ?= node
 
-.PHONY: all assets catalog build run test test-go test-js lint sec check fmt vet staticcheck clean help bench
+.PHONY: all assets dicts catalog build run test test-go test-js lint sec check fmt vet staticcheck clean help bench
 
 all: assets build
 
 help:
 	@printf '%s\n' \
 		'assets        fetch Bergamot WASM + all language packs + fonts' \
+		'dicts         build offline dictionary packs (Kaikki + FreeDict)' \
 		'catalog       write web/catalog.json for static hosting' \
 		'build         compile $(BIN)' \
 		'run           ensure assets then serve :8080' \
@@ -47,6 +49,10 @@ help:
 assets:
 	@bash scripts/fetch-assets.sh
 	@$(MAKE) catalog
+	@if [ "$${TRANSLATASM_DICTS:-0}" = "1" ]; then $(MAKE) dicts; fi
+
+dicts:
+	@bash scripts/fetch-dicts.sh
 
 catalog:
 	@$(GO) run ./cmd/gencatalog -o web/catalog.json
@@ -67,7 +73,7 @@ test-go:
 	$(GO) test $(GOFLAGS) ./...
 
 test-js:
-	$(NODE) --test web/js/engine/pairs.test.mjs
+	$(NODE) --test web/js/engine/pairs.test.mjs web/js/dict/lookup.test.mjs
 
 test: test-go test-js
 

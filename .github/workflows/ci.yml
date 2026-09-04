@@ -47,7 +47,7 @@ jobs:
         run: go test ./...
 
       - name: JS test
-        run: node --test web/js/engine/pairs.test.mjs
+        run: node --test web/js/engine/pairs.test.mjs web/js/dict/lookup.test.mjs
 
       - name: Build
         run: make build

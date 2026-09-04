@@ -60,6 +60,20 @@ make bench
 - Direct packs when available, otherwise pivot through English
 - Bergamot has no WebGPU/WebGL path today. Speed comes from WASM SIMD and optional Firefox `mozIntGemm`
 
+## Offline dictionary
+
+Right-side drawer with bilingual glosses, trimmed monolingual defs, and a personal vocab notebook. Packs lazy-load on first lookup and cache via the service worker (same idea as model packs).
+
+Fixture packs for English and Spanish ship in `web/dicts/`. Build more languages:
+
+```bash
+make dicts
+# or a subset:
+TRANSLATASM_DICT_LANGS="en es fr de" make dicts
+```
+
+Full Kaikki dumps are large. `TRANSLATASM_DICTS=1 make assets` also builds dicts.
+
 ## License
 
 0BSD
