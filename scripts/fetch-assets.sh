@@ -70,7 +70,7 @@ else
 fi
 
 python3 - "$INDEX_JSON" "$FF_JSON" "$MODEL_DIR" "$PAIRS" "$EXTRAS" "$FF_ATTACH_BASE" <<'PY'
-import gzip, json, os, sys, urllib.request
+import gzip, http.client, json, os, sys, time, urllib.error, urllib.request
 
 index_path, ff_path, model_dir, pairs_arg, extras_arg, attach_base = sys.argv[1:7]
 with open(index_path, encoding="utf-8") as f:
@@ -107,7 +107,7 @@ def gunzip_if_needed(path: str) -> None:
         f.write(data)
     print(f"gunzipped: {path}")
 
-def fetch(url: str, dest: str) -> None:
+def fetch(url: str, dest: str, attempts: int = 5) -> None:
     os.makedirs(os.path.dirname(dest), exist_ok=True)
     if os.path.isfile(dest) and os.path.getsize(dest) > 0:
         gunzip_if_needed(dest)
@@ -115,12 +115,24 @@ def fetch(url: str, dest: str) -> None:
             print(f"present: {dest}")
             return
     print(f"fetching {url}")
-    req = urllib.request.Request(url, headers={"Accept-Encoding": "identity"})
-    with urllib.request.urlopen(req) as resp:
-        data = resp.read()
-    with open(dest, "wb") as f:
-        f.write(data)
-    gunzip_if_needed(dest)
+    last_err = None
+    for i in range(1, attempts + 1):
+        try:
+            req = urllib.request.Request(url, headers={"Accept-Encoding": "identity"})
+            with urllib.request.urlopen(req, timeout=120) as resp:
+                data = resp.read()
+            with open(dest, "wb") as f:
+                f.write(data)
+            gunzip_if_needed(dest)
+            return
+        except (urllib.error.URLError, TimeoutError, http.client.IncompleteRead, OSError) as err:
+            last_err = err
+            if os.path.isfile(dest):
+                os.remove(dest)
+            wait = min(2 ** i, 30)
+            print(f"retry {i}/{attempts} after {err!r} (sleep {wait}s)")
+            time.sleep(wait)
+    raise RuntimeError(f"failed to fetch {url}: {last_err!r}")
 
 def default_config(model_name: str, remote=None) -> dict:
     cfg = {
