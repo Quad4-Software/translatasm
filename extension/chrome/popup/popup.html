@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>translatasm</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header>
+    <img src="../icons/icon-48.png" alt="" width="28" height="28">
+    <div class="titles">
+      <strong>translatasm</strong>
+      <span class="sub">page + selection</span>
+    </div>
+  </header>
+  <main>
+    <div class="lang-row">
+      <label>From
+        <select id="from">
+          <option value="auto">Detect language</option>
+          <option value="en">English</option>
+          <option value="es">Spanish</option>
+          <option value="fr">French</option>
+          <option value="de">German</option>
+          <option value="it">Italian</option>
+          <option value="pt">Portuguese</option>
+          <option value="nl">Dutch</option>
+          <option value="pl">Polish</option>
+          <option value="ru">Russian</option>
+          <option value="uk">Ukrainian</option>
+          <option value="cs">Czech</option>
+          <option value="sv">Swedish</option>
+          <option value="da">Danish</option>
+          <option value="fi">Finnish</option>
+          <option value="nb">Norwegian</option>
+          <option value="tr">Turkish</option>
+          <option value="el">Greek</option>
+          <option value="hu">Hungarian</option>
+          <option value="ro">Romanian</option>
+          <option value="bg">Bulgarian</option>
+          <option value="hr">Croatian</option>
+          <option value="sk">Slovak</option>
+          <option value="sl">Slovenian</option>
+          <option value="id">Indonesian</option>
+          <option value="vi">Vietnamese</option>
+          <option value="ca">Catalan</option>
+          <option value="et">Estonian</option>
+          <option value="zh">Chinese</option>
+          <option value="ja">Japanese</option>
+        </select>
+      </label>
+      <button id="btn-swap" class="icon secondary" type="button" title="Swap">Swap</button>
+      <label>To
+        <select id="to">
+          <option value="en">English</option>
+          <option value="es">Spanish</option>
+          <option value="fr">French</option>
+          <option value="de">German</option>
+          <option value="it">Italian</option>
+          <option value="pt">Portuguese</option>
+          <option value="nl">Dutch</option>
+          <option value="pl">Polish</option>
+          <option value="ru">Russian</option>
+          <option value="uk">Ukrainian</option>
+          <option value="cs">Czech</option>
+          <option value="sv">Swedish</option>
+          <option value="da">Danish</option>
+          <option value="fi">Finnish</option>
+          <option value="nb">Norwegian</option>
+          <option value="tr">Turkish</option>
+          <option value="el">Greek</option>
+          <option value="hu">Hungarian</option>
+          <option value="ro">Romanian</option>
+          <option value="bg">Bulgarian</option>
+          <option value="hr">Croatian</option>
+          <option value="sk">Slovak</option>
+          <option value="sl">Slovenian</option>
+          <option value="id">Indonesian</option>
+          <option value="vi">Vietnamese</option>
+          <option value="ca">Catalan</option>
+          <option value="et">Estonian</option>
+          <option value="zh">Chinese</option>
+          <option value="ja">Japanese</option>
+        </select>
+      </label>
+    </div>
+    <textarea id="input" rows="5" placeholder="Paste or type text"></textarea>
+    <textarea id="output" rows="5" readonly placeholder="Translation"></textarea>
+    <div class="row3">
+      <button id="btn-detect" type="button" class="secondary">Detect</button>
+      <button id="btn-translate" type="button">Translate</button>
+      <button id="btn-page" type="button" class="secondary">Page</button>
+    </div>
+    <div class="row">
+      <button id="btn-sel" type="button" class="secondary">Selection</button>
+      <button id="btn-restore" type="button" class="secondary">Restore page</button>
+    </div>
+    <label>Bridge origin
+      <input id="bridge" type="text" spellcheck="false" placeholder="https://translatasm.quad4.io">
+    </label>
+    <button id="btn-bridge" type="button" class="ghost">Connect bridge tab</button>
+    <div class="meter" id="meter"><span></span></div>
+    <p id="status" class="status" role="status"></p>
+  </main>
+  <script src="popup.js" type="module"></script>
+</body>
+</html>

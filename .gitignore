@@ -29,3 +29,5 @@ web/dicts/bi/**
 !web/dicts/bi/esen.json
 __pycache__/
 *.py[cod]
+.build/
+web/build/
