@@ -9,6 +9,7 @@ dist/
 coverage.out
 coverage.html
 web/vendor/bergamot/
-web/models/
+web/models/**
+!web/models/
 !web/models/.gitkeep
 !web/vendor/.gitkeep
