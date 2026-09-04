@@ -70,7 +70,7 @@
     <header class="brand-block">
       <p class="brand">translatasm</p>
       <h1 class="headline">Fast offline translation.</h1>
-      <p class="lede">27 languages. Marian tiny packs via Bergamot WASM. Runs here. Nothing is uploaded.</p>
+      <p class="lede">Marian tiny packs via Bergamot WASM. Auto-detect, glossary, files, offline dict. Nothing is uploaded.</p>
     </header>
 
     <section class="controls" aria-label="Translator">
@@ -88,13 +88,29 @@
         </label>
       </div>
 
-      <div class="pair-grid">
+      <div class="mode-row" aria-label="Modes">
+        <label class="check">
+          <input type="checkbox" id="opt-auto">
+          <span>Auto detect</span>
+        </label>
+        <label class="check">
+          <input type="checkbox" id="opt-html">
+          <span>HTML</span>
+        </label>
+        <label class="check">
+          <input type="checkbox" id="opt-align">
+          <span>Align</span>
+        </label>
+      </div>
+
+      <div class="pair-grid" id="pair-grid">
         <label class="field grow">
           <span class="pane-head">
             <span id="source-label">Source</span>
             <span id="source-count" class="count">0</span>
           </span>
-          <textarea id="source" rows="10" placeholder="Type or paste text" spellcheck="true" autofocus></textarea>
+          <textarea id="source" rows="10" placeholder="Type, paste, or drop a .txt / .md / .srt file" spellcheck="true" autofocus></textarea>
+          <div id="source-align" class="align-pane" hidden></div>
         </label>
         <label class="field grow">
           <span class="pane-head">
@@ -102,6 +118,7 @@
             <span id="latency" class="count"></span>
           </span>
           <textarea id="target" rows="10" readonly placeholder="Translation appears here"></textarea>
+          <div id="target-align" class="align-pane" hidden></div>
         </label>
       </div>
 
@@ -113,8 +130,12 @@
           Translate
         </button>
         <button type="button" id="btn-copy" class="cta secondary" disabled>Copy</button>
+        <button type="button" id="btn-link" class="cta secondary">Copy link</button>
         <button type="button" id="btn-clear" class="cta secondary" disabled>Clear</button>
+        <button type="button" id="btn-file" class="cta secondary">Open file</button>
+        <button type="button" id="btn-download" class="cta secondary" disabled>Download</button>
         <button type="button" id="btn-dict" class="cta secondary" data-dict-toggle aria-expanded="false" aria-controls="dict-panel">Dictionary</button>
+        <input id="file-input" type="file" accept=".txt,.md,.markdown,.srt,text/plain,text/markdown" hidden>
       </div>
 
       <div class="status-row">
@@ -144,12 +165,45 @@
         <button type="submit" class="cta secondary">Go</button>
       </form>
       <p class="dict-status" data-dict-status role="status">Click a word in the translator or search here.</p>
+      <p class="dict-packs" data-dict-packs></p>
       <div class="dict-result" data-dict-result></div>
       <button type="button" class="cta secondary dict-save" data-dict-save disabled>Save to vocab</button>
+
       <section class="dict-vocab-block" aria-label="Saved vocabulary">
         <h3 class="dict-sub">Vocab</h3>
+        <div class="dict-tool-row">
+          <button type="button" class="ghost" data-vocab-export>Export</button>
+          <button type="button" class="ghost" data-vocab-import>Import</button>
+          <button type="button" class="ghost" data-vocab-review>Review</button>
+          <input type="file" accept="application/json,.json,.csv,text/csv" data-vocab-file hidden>
+        </div>
         <div data-dict-vocab></div>
+        <div class="dict-review" data-vocab-review-panel hidden>
+          <p data-review-prompt></p>
+          <p data-review-answer hidden></p>
+          <div class="dict-tool-row">
+            <button type="button" class="cta secondary" data-review-show>Show</button>
+            <button type="button" class="cta secondary" data-review-again disabled>Again</button>
+            <button type="button" class="cta secondary" data-review-good disabled>Good</button>
+          </div>
+        </div>
       </section>
+
+      <section class="dict-gloss-block" aria-label="Term glossary">
+        <h3 class="dict-sub">Glossary</h3>
+        <form class="dict-gloss-form" data-gloss-form>
+          <input type="text" data-gloss-source placeholder="Source term" required>
+          <input type="text" data-gloss-target placeholder="Keep as" required>
+          <button type="submit" class="cta secondary">Add</button>
+        </form>
+        <div class="dict-tool-row">
+          <button type="button" class="ghost" data-gloss-export>Export</button>
+          <button type="button" class="ghost" data-gloss-import>Import</button>
+          <input type="file" accept="application/json,.json" data-gloss-file hidden>
+        </div>
+        <div data-gloss-list></div>
+      </section>
+
       <p class="dict-attr" data-dict-attr></p>
     </aside>
   </div>

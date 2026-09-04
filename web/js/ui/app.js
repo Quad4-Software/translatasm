@@ -1,16 +1,28 @@
 import { createEngine, registerEngine } from '../engine/registry.js';
 import { createBergamotEngine, hasNativeIntGemm } from '../engine/bergamot.js';
 import { canTranslate, findDirect, languageLabel } from '../engine/pairs.js';
+import { translateAligned, renderAlignHtml } from '../engine/align.js';
 import { mountDictDrawer, wordAtCaret } from '../dict/drawer.js';
+import { listGlossary, protectTerms, restoreTerms } from '../dict/glossary.js';
+import { parseUrlState, syncUrlState } from './urlstate.js';
+import { detectLanguage, detectDebounceMs, warmDetector } from '../detect/langdetect.js';
+import {
+  downloadText,
+  fileKind,
+  looksLikeHtml,
+  parseSrt,
+  readTextFile,
+  serializeSrt,
+} from './files.js';
 
 registerEngine('bergamot', createBergamotEngine);
 
 const STORAGE_KEY = 'translatasm.prefs.v1';
 const LIVE_DEBOUNCE_MIN_MS = 70;
 const LIVE_DEBOUNCE_MAX_MS = 160;
+const AUTO_VALUE = 'auto';
 
 /**
- * Shorter debounce for short strings. Longer paste waits a bit more.
  * @param {number} len
  */
 function liveDebounceMs(len) {
@@ -32,6 +44,9 @@ export async function bootApp() {
     to: /** @type {HTMLSelectElement} */ (document.getElementById('to')),
     source: /** @type {HTMLTextAreaElement} */ (document.getElementById('source')),
     target: /** @type {HTMLTextAreaElement} */ (document.getElementById('target')),
+    sourceAlign: /** @type {HTMLElement} */ (document.getElementById('source-align')),
+    targetAlign: /** @type {HTMLElement} */ (document.getElementById('target-align')),
+    pairGrid: /** @type {HTMLElement} */ (document.getElementById('pair-grid')),
     sourceLabel: document.getElementById('source-label'),
     targetLabel: document.getElementById('target-label'),
     sourceCount: document.getElementById('source-count'),
@@ -44,8 +59,15 @@ export async function bootApp() {
     progress: document.getElementById('progress'),
     btnTranslate: /** @type {HTMLButtonElement} */ (document.getElementById('btn-translate')),
     btnCopy: /** @type {HTMLButtonElement} */ (document.getElementById('btn-copy')),
+    btnLink: /** @type {HTMLButtonElement} */ (document.getElementById('btn-link')),
     btnClear: /** @type {HTMLButtonElement} */ (document.getElementById('btn-clear')),
     btnSwap: /** @type {HTMLButtonElement} */ (document.getElementById('btn-swap')),
+    btnFile: /** @type {HTMLButtonElement} */ (document.getElementById('btn-file')),
+    btnDownload: /** @type {HTMLButtonElement} */ (document.getElementById('btn-download')),
+    fileInput: /** @type {HTMLInputElement} */ (document.getElementById('file-input')),
+    optAuto: /** @type {HTMLInputElement} */ (document.getElementById('opt-auto')),
+    optHtml: /** @type {HTMLInputElement} */ (document.getElementById('opt-html')),
+    optAlign: /** @type {HTMLInputElement} */ (document.getElementById('opt-align')),
   };
 
   /** @type {import('../engine/types.js').ModelInfo[]} */
@@ -56,23 +78,62 @@ export async function bootApp() {
   /** @type {ReturnType<typeof createBergamotEngine> | null} */
   let engine = null;
   let liveTimer = 0;
+  let detectTimer = 0;
   /** @type {number} */
   let requestSerial = 0;
   let ready = false;
+  /** @type {string} */
+  let resolvedFrom = 'en';
+  /** @type {import('../engine/align.js').AlignedSentence[] | null} */
+  let lastSentences = null;
+  /** @type {{name: string, kind: string, body: string, translated?: string} | null} */
+  let lastFile = null;
+  let alignActive = -1;
 
   const catalog = await fetchCatalog();
   models = catalog.models;
   languages = catalog.languages;
   pivot = catalog.pivot || 'en';
+  const catalogCodes = new Set(languages.map((l) => l.code));
 
   const prefs = loadPrefs();
-  fillLanguageSelect(els.from, languages, prefs.from || 'en');
-  fillLanguageSelect(els.to, languages, prefs.to || 'es');
-  if (els.from.value === els.to.value) {
+  const urlState = parseUrlState(location.search, catalogCodes);
+
+  const initialFrom = urlState.from || prefs.from || 'en';
+  const initialTo = urlState.to || prefs.to || 'es';
+  fillLanguageSelect(els.from, languages, initialFrom, true);
+  fillLanguageSelect(els.to, languages, initialTo, false);
+
+  if (urlState.auto != null) {
+    els.optAuto.checked = urlState.auto;
+  } else if (prefs.autoDetect != null) {
+    els.optAuto.checked = Boolean(prefs.autoDetect);
+  }
+  if (urlState.html != null) {
+    els.optHtml.checked = urlState.html;
+  } else if (prefs.htmlMode != null) {
+    els.optHtml.checked = Boolean(prefs.htmlMode);
+  }
+  if (urlState.align != null) {
+    els.optAlign.checked = urlState.align;
+  } else if (prefs.alignMode != null) {
+    els.optAlign.checked = Boolean(prefs.alignMode);
+  }
+
+  if (els.optAuto.checked) {
+    els.from.value = AUTO_VALUE;
+  }
+  if (els.from.value === els.to.value && els.from.value !== AUTO_VALUE) {
     els.to.value = els.from.value === 'en' ? 'es' : 'en';
+  }
+  resolvedFrom = els.from.value === AUTO_VALUE ? initialFrom === AUTO_VALUE ? 'en' : initialFrom : els.from.value;
+  if (urlState.q) {
+    els.source.value = urlState.q;
   }
   refreshLabels();
   updateRoute();
+  updateCounts();
+  syncShareUrl(false);
 
   engine = createEngine('bergamot');
   setStatus('Starting Bergamot...');
@@ -83,10 +144,14 @@ export async function bootApp() {
         setProgress(p.progress);
       }
     });
-    await warmPair(els.from.value, els.to.value);
+    await warmPair(effectiveFrom(), els.to.value);
     ready = true;
     const accel = hasNativeIntGemm() ? 'Firefox native IntGEMM' : 'WASM IntGEMM';
     setStatus(`Ready (${accel}). Type to translate.`);
+    warmDetector().catch(() => {});
+    if (els.source.value.trim()) {
+      await runTranslate({ quiet: true });
+    }
   } catch (err) {
     showError(err);
   } finally {
@@ -95,22 +160,67 @@ export async function bootApp() {
   }
 
   els.from.addEventListener('change', () => {
-    if (els.from.value === els.to.value) {
-      const alt = languages.find((l) => l.code !== els.from.value);
-      if (alt) {
-        els.to.value = alt.code;
+    if (els.from.value === AUTO_VALUE) {
+      els.optAuto.checked = true;
+    } else {
+      els.optAuto.checked = false;
+      resolvedFrom = els.from.value;
+      if (els.from.value === els.to.value) {
+        const alt = languages.find((l) => l.code !== els.from.value);
+        if (alt) {
+          els.to.value = alt.code;
+        }
       }
     }
     onPairChanged().catch(showError);
   });
   els.to.addEventListener('change', () => {
-    if (els.to.value === els.from.value) {
+    const from = effectiveFrom();
+    if (els.to.value === from) {
       const alt = languages.find((l) => l.code !== els.to.value);
       if (alt) {
-        els.from.value = alt.code;
+        if (els.from.value === AUTO_VALUE) {
+          resolvedFrom = alt.code;
+        } else {
+          els.from.value = alt.code;
+          resolvedFrom = alt.code;
+        }
       }
     }
     onPairChanged().catch(showError);
+  });
+  els.optAuto.addEventListener('change', () => {
+    if (els.optAuto.checked) {
+      els.from.value = AUTO_VALUE;
+    } else if (els.from.value === AUTO_VALUE) {
+      els.from.value = resolvedFrom;
+    }
+    savePrefs();
+    syncShareUrl(true);
+    scheduleDetectAndTranslate();
+  });
+  els.optHtml.addEventListener('change', () => {
+    if (els.optHtml.checked) {
+      els.optAlign.checked = false;
+      hideAlignPanes();
+    }
+    savePrefs();
+    syncShareUrl(true);
+    if (ready && els.source.value.trim()) {
+      runTranslate({ quiet: true }).catch(showError);
+    }
+  });
+  els.optAlign.addEventListener('change', () => {
+    if (els.optAlign.checked) {
+      els.optHtml.checked = false;
+    } else {
+      hideAlignPanes();
+    }
+    savePrefs();
+    syncShareUrl(true);
+    if (ready && els.source.value.trim()) {
+      runTranslate({ quiet: true }).catch(showError);
+    }
   });
   els.btnTranslate.addEventListener('click', () => {
     runTranslate({ force: true }).catch(showError);
@@ -118,20 +228,59 @@ export async function bootApp() {
   els.btnCopy.addEventListener('click', () => {
     copyTarget().catch(showError);
   });
+  els.btnLink.addEventListener('click', () => {
+    copyShareLink().catch(showError);
+  });
   els.btnClear.addEventListener('click', clearAll);
   els.btnSwap.addEventListener('click', () => {
     swapDirection().catch(showError);
   });
+  els.btnFile.addEventListener('click', () => els.fileInput.click());
+  els.btnDownload.addEventListener('click', () => {
+    downloadResult();
+  });
+  els.fileInput.addEventListener('change', () => {
+    const file = els.fileInput.files && els.fileInput.files[0];
+    if (file) {
+      handleFile(file).catch(showError);
+    }
+    els.fileInput.value = '';
+  });
+
+  els.pairGrid.addEventListener('dragover', (ev) => {
+    ev.preventDefault();
+    els.pairGrid.classList.add('is-drop');
+  });
+  els.pairGrid.addEventListener('dragleave', () => {
+    els.pairGrid.classList.remove('is-drop');
+  });
+  els.pairGrid.addEventListener('drop', (ev) => {
+    ev.preventDefault();
+    els.pairGrid.classList.remove('is-drop');
+    const file = ev.dataTransfer && ev.dataTransfer.files && ev.dataTransfer.files[0];
+    if (file) {
+      handleFile(file).catch(showError);
+    }
+  });
+
+  els.source.addEventListener('paste', (ev) => {
+    const clip = ev.clipboardData?.getData('text') || '';
+    if (looksLikeHtml(clip) && !els.optHtml.checked) {
+      els.optHtml.checked = true;
+      els.optAlign.checked = false;
+      savePrefs();
+    }
+  });
+
   els.source.addEventListener('input', () => {
     updateCounts();
     els.btnClear.disabled = !els.source.value && !els.target.value;
+    lastFile = null;
+    els.btnDownload.disabled = !els.target.value;
     if (!ready) {
       return;
     }
-    window.clearTimeout(liveTimer);
-    liveTimer = window.setTimeout(() => {
-      runTranslate({ quiet: true }).catch(showError);
-    }, liveDebounceMs(els.source.value.length));
+    scheduleDetectAndTranslate();
   });
   els.source.addEventListener('keydown', (ev) => {
     if ((ev.metaKey || ev.ctrlKey) && ev.key === 'Enter') {
@@ -140,13 +289,21 @@ export async function bootApp() {
     }
   });
 
+  els.sourceAlign.addEventListener('click', (ev) => onAlignClick(ev, 'source'));
+  els.targetAlign.addEventListener('click', (ev) => onAlignClick(ev, 'target'));
+
   const dictRoot = document.getElementById('dict-root');
   const dict =
     dictRoot &&
     mountDictDrawer({
       root: dictRoot,
-      getPair: () => ({ from: els.from.value, to: els.to.value }),
+      getPair: () => ({ from: effectiveFrom(), to: els.to.value }),
       onStatus: (msg) => setStatus(msg),
+      onGlossaryChange: () => {
+        if (ready && els.source.value.trim()) {
+          runTranslate({ quiet: true }).catch(showError);
+        }
+      },
     });
 
   /**
@@ -168,6 +325,63 @@ export async function bootApp() {
   bindWordLookup(els.source, 'source');
   bindWordLookup(els.target, 'target');
 
+  function scheduleDetectAndTranslate() {
+    window.clearTimeout(liveTimer);
+    window.clearTimeout(detectTimer);
+    const text = els.source.value;
+    if (els.optAuto.checked) {
+      detectTimer = window.setTimeout(() => {
+        runDetect()
+          .then(() => runTranslate({ quiet: true }))
+          .catch(showError);
+      }, detectDebounceMs(text.length));
+      return;
+    }
+    liveTimer = window.setTimeout(() => {
+      runTranslate({ quiet: true }).catch(showError);
+    }, liveDebounceMs(text.length));
+  }
+
+  /**
+   * @returns {Promise<void>}
+   */
+  async function runDetect() {
+    if (!els.optAuto.checked) {
+      return;
+    }
+    const text = els.source.value.trim();
+    if (text.length < 8) {
+      return;
+    }
+    const serial = requestSerial;
+    const code = await detectLanguage(text, catalogCodes);
+    if (serial !== requestSerial) {
+      return;
+    }
+    if (!code || code === els.to.value) {
+      return;
+    }
+    if (code !== resolvedFrom) {
+      resolvedFrom = code;
+      refreshLabels();
+      updateRoute();
+      savePrefs();
+      syncShareUrl(true);
+      await warmPair(resolvedFrom, els.to.value);
+      setStatus(`Detected ${languageLabel(code, languages)}.`);
+    }
+  }
+
+  /**
+   * @returns {string}
+   */
+  function effectiveFrom() {
+    if (els.from.value === AUTO_VALUE || els.optAuto.checked) {
+      return resolvedFrom;
+    }
+    return els.from.value;
+  }
+
   /**
    * @param {{quiet?: boolean, force?: boolean}} [mode]
    */
@@ -176,14 +390,20 @@ export async function bootApp() {
     if (!engine || !ready) {
       throw new Error('Translation engine is not ready.');
     }
-    const from = els.from.value;
+    const from = effectiveFrom();
     const to = els.to.value;
     const text = els.source.value;
+    const htmlMode = els.optHtml.checked;
+    const alignMode = els.optAlign.checked && !htmlMode;
+
     if (!text.trim()) {
       els.target.value = '';
+      lastSentences = null;
+      hideAlignPanes();
       if (els.latency) {
         els.latency.textContent = '';
       }
+      syncShareUrl(true);
       if (!mode.quiet) {
         setStatus('Paste or type some text first.');
       }
@@ -204,26 +424,78 @@ export async function bootApp() {
     }
 
     try {
-      const result = await engine.translate(text, {
-        from,
-        to,
-        onPartial: (partial) => {
-          if (serial !== requestSerial) {
-            return;
-          }
-          els.target.value = partial.text;
-        },
-      });
-      if (serial !== requestSerial) {
-        return;
+      const glossary = await listGlossary(from, to).catch(() => []);
+      const protected_ = protectTerms(text, glossary, { html: htmlMode });
+
+      let outText = '';
+      /** @type {import('../engine/align.js').AlignedSentence[] | null} */
+      let sentences = null;
+
+      if (alignMode) {
+        const aligned = await translateAligned(protected_.text, {
+          from,
+          to,
+          html: false,
+          translateOne: async (sentence) => {
+            if (serial !== requestSerial) {
+              return '';
+            }
+            const result = await engine.translate(sentence, { from, to, html: false });
+            return restoreTerms(result.text, protected_.map);
+          },
+          onPartial: (partial) => {
+            if (serial !== requestSerial) {
+              return;
+            }
+            els.target.value = partial.map((p) => p.target).join(' ');
+            showAlignPanes(
+              partial.map((p) => ({
+                source: restoreTerms(p.source, protected_.map),
+                target: p.target,
+              })),
+            );
+          },
+        });
+        if (serial !== requestSerial) {
+          return;
+        }
+        sentences = aligned.sentences.map((p) => ({
+          source: restoreTerms(p.source, protected_.map),
+          target: p.target,
+        }));
+        outText = sentences.map((s) => s.target).join(' ');
+      } else {
+        const result = await engine.translate(protected_.text, {
+          from,
+          to,
+          html: htmlMode,
+          onPartial: (partial) => {
+            if (serial !== requestSerial) {
+              return;
+            }
+            els.target.value = restoreTerms(partial.text, protected_.map);
+          },
+        });
+        if (serial !== requestSerial) {
+          return;
+        }
+        outText = restoreTerms(result.text, protected_.map);
+        hideAlignPanes();
       }
-      els.target.value = result.text;
+
+      els.target.value = outText;
+      lastSentences = sentences;
+      if (sentences) {
+        showAlignPanes(sentences);
+      }
       const ms = Math.round(performance.now() - started);
       if (els.latency) {
         els.latency.textContent = `${ms} ms`;
       }
-      els.btnCopy.disabled = !result.text;
+      els.btnCopy.disabled = !outText;
+      els.btnDownload.disabled = !outText;
       els.btnClear.disabled = !els.source.value && !els.target.value;
+      syncShareUrl(true);
       if (!mode.quiet) {
         setStatus('Done.');
       }
@@ -243,14 +515,102 @@ export async function bootApp() {
     }
   }
 
+  /**
+   * @param {File} file
+   */
+  async function handleFile(file) {
+    const kind = fileKind(file.name);
+    const body = await readTextFile(file);
+    lastFile = { name: file.name, kind: kind || 'txt', body };
+    if (kind === 'srt') {
+      els.optHtml.checked = false;
+      els.optAlign.checked = false;
+      await translateSrtFile(body, file.name);
+      return;
+    }
+    els.source.value = body;
+    if (looksLikeHtml(body)) {
+      els.optHtml.checked = true;
+      els.optAlign.checked = false;
+    }
+    updateCounts();
+    savePrefs();
+    setStatus(`Loaded ${file.name}`);
+    await runTranslate({ force: true });
+    els.btnDownload.disabled = !els.target.value;
+  }
+
+  /**
+   * @param {string} body
+   * @param {string} name
+   */
+  async function translateSrtFile(body, name) {
+    const cues = parseSrt(body);
+    if (!cues.length) {
+      throw new Error('No SRT cues found.');
+    }
+    els.source.value = cues.map((c) => c.text).join('\n');
+    updateCounts();
+    setBusy(true);
+    setStatus(`Translating ${cues.length} cues…`);
+    const from = effectiveFrom();
+    const to = els.to.value;
+    const serial = ++requestSerial;
+    const glossary = await listGlossary(from, to).catch(() => []);
+    /** @type {string[]} */
+    const outs = [];
+    for (let i = 0; i < cues.length; i += 1) {
+      if (serial !== requestSerial) {
+        return;
+      }
+      setProgress((i + 1) / cues.length);
+      const protected_ = protectTerms(cues[i].text, glossary, { html: false });
+      const result = await engine.translate(protected_.text, { from, to, html: false });
+      outs.push(restoreTerms(result.text, protected_.map));
+    }
+    if (serial !== requestSerial) {
+      return;
+    }
+    const rebuilt = cues.map((c, i) => ({ ...c, text: outs[i] || c.text }));
+    els.target.value = outs.join('\n');
+    lastFile = {
+      name,
+      kind: 'srt',
+      body,
+      translated: serializeSrt(rebuilt),
+    };
+    els.btnCopy.disabled = false;
+    els.btnDownload.disabled = false;
+    els.btnClear.disabled = false;
+    setBusy(false);
+    hideProgress();
+    setStatus('SRT translated.');
+  }
+
+  function downloadResult() {
+    const text = els.target.value;
+    if (!text) {
+      return;
+    }
+    if (lastFile?.kind === 'srt' && lastFile.translated) {
+      downloadText(lastFile.name.replace(/\.srt$/i, '.translated.srt'), lastFile.translated);
+      setStatus('Downloaded SRT.');
+      return;
+    }
+    const ext = lastFile?.kind === 'md' ? 'md' : els.optHtml.checked ? 'html' : 'txt';
+    downloadText(`translated.${ext}`, text);
+    setStatus('Downloaded translation.');
+  }
+
   async function onPairChanged() {
     refreshLabels();
     updateRoute();
     savePrefs();
+    syncShareUrl(true);
     setStatus('Loading language pack...');
     setBusy(true);
     try {
-      await warmPair(els.from.value, els.to.value);
+      await warmPair(effectiveFrom(), els.to.value);
       setStatus('Ready.');
       if (els.source.value.trim()) {
         await runTranslate({ quiet: true });
@@ -281,15 +641,17 @@ export async function bootApp() {
   }
 
   async function swapDirection() {
-    const from = els.from.value;
+    const from = effectiveFrom();
     const to = els.to.value;
     if (!canTranslate(models, to, from, pivot)) {
       setStatus('Cannot swap this pair.');
       return;
     }
     const carried = els.target.value;
+    els.optAuto.checked = false;
     els.from.value = to;
     els.to.value = from;
+    resolvedFrom = to;
     refreshLabels();
     updateRoute();
     savePrefs();
@@ -310,24 +672,84 @@ export async function bootApp() {
     setStatus('Copied translation.');
   }
 
+  async function copyShareLink() {
+    syncShareUrl(true);
+    const url = location.href;
+    await navigator.clipboard.writeText(url);
+    setStatus('Copied share link.');
+  }
+
   function clearAll() {
     requestSerial += 1;
     window.clearTimeout(liveTimer);
+    window.clearTimeout(detectTimer);
     els.source.value = '';
     els.target.value = '';
+    lastFile = null;
+    lastSentences = null;
+    hideAlignPanes();
     els.btnCopy.disabled = true;
     els.btnClear.disabled = true;
+    els.btnDownload.disabled = true;
     if (els.latency) {
       els.latency.textContent = '';
     }
     updateCounts();
     clearError();
+    syncShareUrl(true);
     setStatus('Cleared.');
   }
 
+  /**
+   * @param {import('../engine/align.js').AlignedSentence[]} sentences
+   */
+  function showAlignPanes(sentences) {
+    els.source.hidden = true;
+    els.target.hidden = true;
+    els.sourceAlign.hidden = false;
+    els.targetAlign.hidden = false;
+    els.sourceAlign.innerHTML = renderAlignHtml(sentences, 'source', alignActive);
+    els.targetAlign.innerHTML = renderAlignHtml(sentences, 'target', alignActive);
+  }
+
+  function hideAlignPanes() {
+    els.source.hidden = false;
+    els.target.hidden = false;
+    els.sourceAlign.hidden = true;
+    els.targetAlign.hidden = true;
+    els.sourceAlign.innerHTML = '';
+    els.targetAlign.innerHTML = '';
+    alignActive = -1;
+  }
+
+  /**
+   * @param {MouseEvent} ev
+   * @param {'source' | 'target'} pane
+   */
+  function onAlignClick(ev, pane) {
+    const t = /** @type {HTMLElement} */ (ev.target);
+    const span = t.closest('[data-align-i]');
+    if (!span || !lastSentences) {
+      return;
+    }
+    const i = Number(span.getAttribute('data-align-i'));
+    alignActive = i;
+    showAlignPanes(lastSentences);
+    if (dict) {
+      const word = (pane === 'source' ? lastSentences[i].source : lastSentences[i].target)
+        .split(/\s+/)[0]
+        ?.replace(/[^\p{L}\p{N}'’-]/gu, '');
+      if (word) {
+        dict.lookUp(word, pane).catch(showError);
+      }
+    }
+  }
+
   function refreshLabels() {
+    const from = effectiveFrom();
     if (els.sourceLabel) {
-      els.sourceLabel.textContent = languageLabel(els.from.value, languages);
+      const auto = els.optAuto.checked ? ' (auto)' : '';
+      els.sourceLabel.textContent = `${languageLabel(from, languages)}${auto}`;
     }
     if (els.targetLabel) {
       els.targetLabel.textContent = languageLabel(els.to.value, languages);
@@ -338,7 +760,7 @@ export async function bootApp() {
     if (!els.route) {
       return;
     }
-    const from = els.from.value;
+    const from = effectiveFrom();
     const to = els.to.value;
     if (findDirect(models, from, to)) {
       els.route.hidden = true;
@@ -360,13 +782,33 @@ export async function bootApp() {
     }
   }
 
+  /**
+   * @param {boolean} includeQ
+   */
+  function syncShareUrl(includeQ) {
+    syncUrlState(
+      {
+        from: els.optAuto.checked ? effectiveFrom() : els.from.value === AUTO_VALUE ? effectiveFrom() : els.from.value,
+        to: els.to.value,
+        q: includeQ ? els.source.value : undefined,
+        html: els.optHtml.checked || undefined,
+        auto: els.optAuto.checked || undefined,
+        align: els.optAlign.checked || undefined,
+      },
+      { includeQ, replace: true },
+    );
+  }
+
   function savePrefs() {
     try {
       localStorage.setItem(
         STORAGE_KEY,
         JSON.stringify({
-          from: els.from.value,
+          from: els.from.value === AUTO_VALUE ? resolvedFrom : els.from.value,
           to: els.to.value,
+          autoDetect: els.optAuto.checked,
+          htmlMode: els.optHtml.checked,
+          alignMode: els.optAlign.checked,
         }),
       );
     } catch {
@@ -477,22 +919,31 @@ async function fetchCatalog() {
  * @param {HTMLSelectElement} select
  * @param {import('../engine/types.js').LanguageInfo[]} languages
  * @param {string} selected
+ * @param {boolean} withAuto
  */
-function fillLanguageSelect(select, languages, selected) {
+function fillLanguageSelect(select, languages, selected, withAuto) {
   select.innerHTML = '';
+  if (withAuto) {
+    const opt = document.createElement('option');
+    opt.value = AUTO_VALUE;
+    opt.textContent = 'Auto detect';
+    select.appendChild(opt);
+  }
   for (const lang of languages) {
     const opt = document.createElement('option');
     opt.value = lang.code;
     opt.textContent = lang.label;
     select.appendChild(opt);
   }
-  if (selected && [...select.options].some((o) => o.value === selected)) {
+  if (selected === AUTO_VALUE && withAuto) {
+    select.value = AUTO_VALUE;
+  } else if (selected && [...select.options].some((o) => o.value === selected)) {
     select.value = selected;
   }
 }
 
 /**
- * @returns {{from?: string, to?: string}}
+ * @returns {{from?: string, to?: string, autoDetect?: boolean, htmlMode?: boolean, alignMode?: boolean}}
  */
 function loadPrefs() {
   try {

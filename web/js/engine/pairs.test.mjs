@@ -6,7 +6,9 @@ import {
   findReverse,
   languageLabel,
   splitChunks,
+  splitSentences,
 } from './pairs.js';
+
 
 const models = [
   { from: 'en', to: 'es' },
@@ -40,4 +42,9 @@ test('splitChunks breaks paragraphs and long sentences', () => {
   const chunks = splitChunks(text, 20);
   assert.ok(chunks.length >= 2);
   assert.equal(chunks[0], 'One.');
+});
+
+test('splitSentences splits on punctuation', () => {
+  const parts = splitSentences('A. B? C!');
+  assert.ok(parts.length >= 2);
 });

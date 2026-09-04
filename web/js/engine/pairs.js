@@ -54,16 +54,47 @@ export function languageLabel(code, names) {
 }
 
 /**
+ * Split plain text into sentences (Latin + common CJK punctuation).
+ * @param {string} text
+ * @param {{lang?: string}} [opts]
+ * @returns {string[]}
+ */
+export function splitSentences(text, opts = {}) {
+  const normalized = String(text ?? '').replace(/\r\n/g, '\n').trim();
+  if (!normalized) {
+    return [];
+  }
+  if (opts.lang && typeof Intl !== 'undefined' && typeof Intl.Segmenter === 'function') {
+    try {
+      const seg = new Intl.Segmenter(opts.lang, { granularity: 'sentence' });
+      const parts = [...seg.segment(normalized)].map((s) => s.segment.trim()).filter(Boolean);
+      if (parts.length) {
+        return parts;
+      }
+    } catch {
+      // fall through
+    }
+  }
+  const re = /[^.!?…。！？]+[.!?…。！？]+(?:\s+|$)|[^.!?…。！？]+$/g;
+  return normalized.match(re)?.map((s) => s.trim()).filter(Boolean) || [normalized];
+}
+
+/**
  * Split text into translation chunks. Prefer blank-line paragraphs,
  * then sentence breaks for oversized blocks.
  * @param {string} text
  * @param {number} [maxChars]
+ * @param {{html?: boolean, lang?: string}} [opts]
  * @returns {string[]}
  */
-export function splitChunks(text, maxChars = 900) {
+export function splitChunks(text, maxChars = 900, opts = {}) {
   const normalized = String(text ?? '').replace(/\r\n/g, '\n').trim();
   if (!normalized) {
     return [];
+  }
+
+  if (opts.html) {
+    return splitHtmlChunks(normalized, maxChars);
   }
 
   const paragraphs = normalized.split(/\n{2,}/);
@@ -79,7 +110,7 @@ export function splitChunks(text, maxChars = 900) {
       out.push(block);
       continue;
     }
-    const sentences = block.match(/[^.!?…]+[.!?…]+(?:\s+|$)|[^.!?…]+$/g) || [block];
+    const sentences = splitSentences(block, { lang: opts.lang });
     let buf = '';
     for (const sentence of sentences) {
       const piece = sentence.trim();
@@ -103,4 +134,36 @@ export function splitChunks(text, maxChars = 900) {
   }
 
   return out.length ? out : [normalized];
+}
+
+/**
+ * Paragraph-only splits so HTML tags are not cut mid-element.
+ * @param {string} text
+ * @param {number} maxChars
+ * @returns {string[]}
+ */
+function splitHtmlChunks(text, maxChars) {
+  if (text.length <= maxChars) {
+    return [text];
+  }
+  const parts = text.split(/(?=<\/p>)|(?<=<\/p>)|\n{2,}/i).filter((p) => p.length);
+  /** @type {string[]} */
+  const out = [];
+  let buf = '';
+  for (const part of parts) {
+    if (!buf) {
+      buf = part;
+      continue;
+    }
+    if ((buf + part).length <= maxChars) {
+      buf += part;
+    } else {
+      out.push(buf);
+      buf = part;
+    }
+  }
+  if (buf) {
+    out.push(buf);
+  }
+  return out.length ? out : [text];
 }

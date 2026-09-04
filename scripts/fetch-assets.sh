@@ -83,11 +83,16 @@ if pairs_arg.strip() == "all":
 else:
     pairs = pairs_arg.split()
 
-# Curated Firefox extras (v1-friendly). Skips CJK and huge 2.x packs.
+# Curated Firefox extras (v1-friendly). Skips CJK and huge 2.x packs unless TRANSLATASM_CJK=1.
 EXTRA_LANGS = {
     "pl", "nl", "sv", "da", "fi", "hu", "ro", "el", "tr",
     "ca", "hr", "sk", "sl", "id", "vi", "nb",
 }
+CJK_LANGS = {"zh", "ja"}
+cjk_arg = os.environ.get("TRANSLATASM_CJK", "0")
+if cjk_arg == "1":
+    EXTRA_LANGS = set(EXTRA_LANGS) | CJK_LANGS
+
 
 registry = {}
 
@@ -209,12 +214,20 @@ for pair in pairs:
     files_out["config"] = default_config(model_name, entry.get("config"))
     add_pair(pair, from_code, to_code, files_out)
 
-def pick_firefox_files(records):
+def pick_firefox_files(records, prefer_cjk=False):
     by_ver = {}
     for r in records:
         by_ver.setdefault(r.get("version") or "", []).append(r)
 
     def score(v):
+        if prefer_cjk:
+            if v.startswith("2."):
+                return (0, v)
+            if v.startswith("1.0"):
+                return (2, v)
+            if v.startswith("1."):
+                return (3, v)
+            return (1, v)
         if v.startswith("1.0"):
             return (0, v)
         if v.startswith("1."):
@@ -251,10 +264,13 @@ if extras_arg != "0":
         pair = fl + tl
         if pair in registry:
             continue
-        ver, files = pick_firefox_files(recs)
+        prefer_cjk = (fl in CJK_LANGS) or (tl in CJK_LANGS)
+        ver, files = pick_firefox_files(recs, prefer_cjk=prefer_cjk)
         if not files:
             print(f"skip {pair}: incomplete firefox records")
             continue
+        if prefer_cjk and not str(ver).startswith("2"):
+            print(f"warn {pair}: no 2.x pack found (got v{ver}); needs Bergamot WASM 2.x")
         dest_dir = os.path.join(model_dir, "tiny", pair)
         os.makedirs(dest_dir, exist_ok=True)
         files_out = {}

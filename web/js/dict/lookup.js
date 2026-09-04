@@ -184,13 +184,13 @@ export async function lookupWord(registry, word, opts) {
   const glossLang = opts.glossLang || '';
   if (glossLang && glossLang !== opts.lang) {
     try {
-      const bi = await loadBiForPair(registry, opts.lang, glossLang);
-      if (bi) {
-        const hit = findGlosses(bi.entries || {}, normalized);
-        if (hit) {
-          result.glosses = hit.glosses;
-          result.matched = hit.matched;
-          result.stemmed = hit.stemmed;
+      const biHit = await loadGlossesWithPivot(registry, opts.lang, glossLang, normalized);
+      if (biHit) {
+        result.glosses = biHit.glosses;
+        result.matched = biHit.matched;
+        result.stemmed = biHit.stemmed;
+        if (biHit.viaPivot) {
+          result.status = result.status || 'Gloss via English pivot';
         }
       }
     } catch (err) {
@@ -245,6 +245,58 @@ async function loadBiForPair(registry, from, to) {
     }
     throw err;
   }
+}
+
+/**
+ * Direct bi pack, else English-pivot gloss when both legs exist.
+ * @param {import('./registry.js').DictRegistry} registry
+ * @param {string} lang
+ * @param {string} glossLang
+ * @param {string} normalized
+ * @returns {Promise<{glosses: string[], matched: string, stemmed: boolean, viaPivot?: boolean} | null>}
+ */
+async function loadGlossesWithPivot(registry, lang, glossLang, normalized) {
+  const direct = await loadBiForPair(registry, lang, glossLang);
+  if (direct) {
+    const hit = findGlosses(direct.entries || {}, normalized);
+    if (hit) {
+      return hit;
+    }
+  }
+
+  if (lang === 'en' || glossLang === 'en') {
+    return null;
+  }
+
+  const toEn = await loadBiForPair(registry, lang, 'en');
+  if (!toEn) {
+    return null;
+  }
+  const enHit = findGlosses(toEn.entries || {}, normalized);
+  if (!enHit || !enHit.glosses?.length) {
+    return null;
+  }
+
+  const enWord = normalizeWord(enHit.glosses[0]);
+  const enToTarget = await loadBiForPair(registry, 'en', glossLang);
+  if (enToTarget && enWord) {
+    const pivoted = findGlosses(enToTarget.entries || {}, enWord);
+    if (pivoted) {
+      return {
+        glosses: pivoted.glosses,
+        matched: enHit.matched,
+        stemmed: enHit.stemmed || pivoted.stemmed,
+        viaPivot: true,
+      };
+    }
+  }
+
+  return {
+    glosses: enHit.glosses.map((g) => `${g} (en)`),
+    matched: enHit.matched,
+    stemmed: enHit.stemmed,
+    viaPivot: true,
+  };
 }
 
 /**

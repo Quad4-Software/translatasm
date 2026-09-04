@@ -34,6 +34,7 @@
  * @property {string} [from]
  * @property {string} [to]
  * @property {boolean} [html]
+ * @property {boolean} [align]
  * @property {number} [chunkChars]
  * @property {AbortSignal} [signal]
  * @property {(ev: ProgressEvent) => void} [onProgress]
@@ -41,10 +42,15 @@
  */
 
 /**
+ * @typedef {{source: string, target: string}} AlignedSentence
+ */
+
+/**
  * @typedef {object} TranslateResult
  * @property {string} text
  * @property {string} from
  * @property {string} to
+ * @property {AlignedSentence[]} [sentences]
  */
 
 /**

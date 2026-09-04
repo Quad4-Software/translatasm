@@ -10,6 +10,7 @@ import {
   CancelledError,
 } from '/vendor/bergamot/translator.js';
 import { splitChunks } from './pairs.js';
+import { needsCjkSegmentation, segmentSentences } from './segment.js';
 
 /**
  * Loads models from the local static registry at /models/registry.json.
@@ -201,7 +202,15 @@ export function createBergamotEngine() {
       lastFrom = from;
       lastTo = to;
 
-      const chunks = splitChunks(raw, opts.chunkChars ?? 1100);
+      let workText = raw;
+      if (!opts.html && needsCjkSegmentation(from)) {
+        workText = segmentSentences(raw, from).join('\n');
+      }
+
+      const chunks = splitChunks(workText, opts.chunkChars ?? 1100, {
+        html: Boolean(opts.html),
+        lang: from,
+      });
       /** @type {string[]} */
       const parts = [];
       const total = chunks.length;

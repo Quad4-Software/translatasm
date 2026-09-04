@@ -676,6 +676,58 @@
       "speed_rank": 5,
       "accuracy_rank": 3,
       "notes": "Firefox NB-EN"
+    },
+    {
+      "id": "tiny-enzh",
+      "label": "English to Chinese",
+      "engine": "bergamot",
+      "path": "/models/tiny/enzh",
+      "from": "en",
+      "to": "zh",
+      "architecture": "tiny",
+      "size_hint_mb": 40,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Firefox EN-ZH (needs Bergamot WASM 2.x)"
+    },
+    {
+      "id": "tiny-zhen",
+      "label": "Chinese to English",
+      "engine": "bergamot",
+      "path": "/models/tiny/zhen",
+      "from": "zh",
+      "to": "en",
+      "architecture": "tiny",
+      "size_hint_mb": 40,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Firefox ZH-EN (needs Bergamot WASM 2.x)"
+    },
+    {
+      "id": "tiny-enja",
+      "label": "English to Japanese",
+      "engine": "bergamot",
+      "path": "/models/tiny/enja",
+      "from": "en",
+      "to": "ja",
+      "architecture": "tiny",
+      "size_hint_mb": 40,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Firefox EN-JA (needs Bergamot WASM 2.x)"
+    },
+    {
+      "id": "tiny-jaen",
+      "label": "Japanese to English",
+      "engine": "bergamot",
+      "path": "/models/tiny/jaen",
+      "from": "ja",
+      "to": "en",
+      "architecture": "tiny",
+      "size_hint_mb": 40,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Firefox JA-EN (needs Bergamot WASM 2.x)"
     }
   ],
   "languages": [
@@ -690,6 +742,10 @@
     {
       "code": "ca",
       "label": "Catalan"
+    },
+    {
+      "code": "zh",
+      "label": "Chinese"
     },
     {
       "code": "hr",
@@ -738,6 +794,10 @@
     {
       "code": "it",
       "label": "Italian"
+    },
+    {
+      "code": "ja",
+      "label": "Japanese"
     },
     {
       "code": "nb",

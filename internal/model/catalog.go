@@ -78,6 +78,8 @@ var languageLabels = map[string]string{
 	"tr": "Turkish",
 	"uk": "Ukrainian",
 	"vi": "Vietnamese",
+	"zh": "Chinese",
+	"ja": "Japanese",
 }
 
 // Bergamot S3 tiny packs plus curated Firefox Translations extras.
@@ -134,6 +136,10 @@ var allPairs = []pairSpec{
 	{from: "vi", to: "en", sizeMB: 22, notes: "Firefox VI-EN"},
 	{from: "en", to: "nb", sizeMB: 22, notes: "Firefox EN-NB"},
 	{from: "nb", to: "en", sizeMB: 15, notes: "Firefox NB-EN"},
+	{from: "en", to: "zh", sizeMB: 40, notes: "Firefox EN-ZH (needs Bergamot WASM 2.x)"},
+	{from: "zh", to: "en", sizeMB: 40, notes: "Firefox ZH-EN (needs Bergamot WASM 2.x)"},
+	{from: "en", to: "ja", sizeMB: 40, notes: "Firefox EN-JA (needs Bergamot WASM 2.x)"},
+	{from: "ja", to: "en", sizeMB: 40, notes: "Firefox JA-EN (needs Bergamot WASM 2.x)"},
 }
 
 // DefaultCatalog returns every Bergamot pack plus language metadata.

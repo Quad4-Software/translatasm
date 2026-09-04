@@ -39,7 +39,7 @@ help:
 		'catalog       write web/catalog.json for static hosting' \
 		'build         compile $(BIN)' \
 		'run           ensure assets then serve :8080' \
-		'test          go test' \
+		'test          go + js tests' \
 		'bench         bergamot latency + soft accuracy' \
 		'lint          golangci-lint run' \
 		'sec           gosec + govulncheck' \
@@ -48,6 +48,7 @@ help:
 
 assets:
 	@bash scripts/fetch-assets.sh
+	@if [ "$${TRANSLATASM_CJK:-0}" = "1" ]; then bash scripts/fetch-firefox-wasm.sh; fi
 	@$(MAKE) catalog
 	@if [ "$${TRANSLATASM_DICTS:-0}" = "1" ]; then $(MAKE) dicts; fi
 
@@ -73,7 +74,15 @@ test-go:
 	$(GO) test $(GOFLAGS) ./...
 
 test-js:
-	$(NODE) --test web/js/engine/pairs.test.mjs web/js/dict/lookup.test.mjs
+	$(NODE) --test \
+		web/js/engine/pairs.test.mjs \
+		web/js/engine/align.test.mjs \
+		web/js/dict/lookup.test.mjs \
+		web/js/dict/glossary.test.mjs \
+		web/js/dict/vocab.test.mjs \
+		web/js/ui/urlstate.test.mjs \
+		web/js/ui/files.test.mjs \
+		web/js/detect/langdetect.test.mjs
 
 test: test-go test-js
 

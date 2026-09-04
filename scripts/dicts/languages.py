@@ -27,8 +27,10 @@ KAIKKI_NAMES = {
     "sl": "Slovenian",
     "sv": "Swedish",
     "tr": "Turkish",
-    "uk": "Ukrainian",
-    "vi": "Vietnamese",
+	"uk": "Ukrainian",
+	"vi": "Vietnamese",
+	"zh": "Chinese",
+	"ja": "Japanese",
 }
 
 # Bergamot codes to FreeDict ISO 639-3 style pair codes.
@@ -58,8 +60,10 @@ FREEDICT_CODES = {
     "sl": "slv",
     "sv": "swe",
     "tr": "tur",
-    "uk": "ukr",
-    "vi": "vie",
+	"uk": "ukr",
+	"vi": "vie",
+	"zh": "zho",
+	"ja": "jpn",
 }
 
 ALL_LANGS = sorted(KAIKKI_NAMES.keys())
