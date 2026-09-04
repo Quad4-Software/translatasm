@@ -71,6 +71,11 @@ export async function bootApp() {
     btnSwap: /** @type {HTMLButtonElement} */ (document.getElementById('btn-swap')),
     btnFile: /** @type {HTMLButtonElement} */ (document.getElementById('btn-file')),
     btnDownload: /** @type {HTMLButtonElement} */ (document.getElementById('btn-download')),
+    btnDict: /** @type {HTMLButtonElement} */ (document.getElementById('btn-dict')),
+    btnMore: /** @type {HTMLButtonElement | null} */ (document.getElementById('btn-more')),
+    moreSheet: /** @type {HTMLElement | null} */ (document.getElementById('more-sheet')),
+    paneTabs: /** @type {HTMLElement | null} */ (document.querySelector('.pane-tabs')),
+    ctaRow: /** @type {HTMLElement | null} */ (document.getElementById('cta-row')),
     fileInput: /** @type {HTMLInputElement} */ (document.getElementById('file-input')),
     optAuto: /** @type {HTMLInputElement} */ (document.getElementById('opt-auto')),
     optHtml: /** @type {HTMLInputElement} */ (document.getElementById('opt-html')),
@@ -148,6 +153,8 @@ export async function bootApp() {
   updateRoute();
   updateCounts();
   syncShareUrl(false);
+
+  void loadAppVersion();
 
   engine = createEngine('bergamot');
   setStatus('Starting Bergamot...');
@@ -306,6 +313,8 @@ export async function bootApp() {
 
   els.sourceAlign.addEventListener('click', onAlignClick);
   els.targetAlign.addEventListener('click', onAlignClick);
+
+  const mobileChrome = setupMobileChrome(els);
 
   const dictRoot = document.getElementById('dict-root');
   if (dictRoot) {
@@ -588,6 +597,9 @@ export async function bootApp() {
       syncShareUrl(true);
       if (!mode.quiet) {
         setStatus('Done.');
+        if (outText && mobileChrome.isMobile()) {
+          mobileChrome.setActivePane('target');
+        }
       }
     } catch (err) {
       if (isSuperseded(err) || serial !== requestSerial || ac.signal.aborted) {
@@ -884,12 +896,22 @@ export async function bootApp() {
 
   function refreshLabels() {
     const from = effectiveFrom();
+    const fromLabel = languageLabel(from, languages);
+    const toLabel = languageLabel(els.to.value, languages);
     if (els.sourceLabel) {
       const auto = els.optAuto.checked ? ' (auto)' : '';
-      els.sourceLabel.textContent = `${languageLabel(from, languages)}${auto}`;
+      els.sourceLabel.textContent = `${fromLabel}${auto}`;
     }
     if (els.targetLabel) {
-      els.targetLabel.textContent = languageLabel(els.to.value, languages);
+      els.targetLabel.textContent = toLabel;
+    }
+    const tabSource = document.getElementById('tab-source');
+    const tabTarget = document.getElementById('tab-target');
+    if (tabSource) {
+      tabSource.textContent = fromLabel;
+    }
+    if (tabTarget) {
+      tabTarget.textContent = toLabel;
     }
   }
 
@@ -1017,6 +1039,187 @@ export async function bootApp() {
     }
     els.progressTrack.hidden = true;
     els.progress.style.width = '0%';
+  }
+}
+
+/**
+ * Mobile pane tabs, sticky dock sizing, and overflow action sheet.
+ * @param {{
+ *   pairGrid: HTMLElement,
+ *   paneTabs: HTMLElement | null,
+ *   btnMore: HTMLButtonElement | null,
+ *   moreSheet: HTMLElement | null,
+ *   ctaRow: HTMLElement | null,
+ *   btnLink: HTMLButtonElement,
+ *   btnClear: HTMLButtonElement,
+ *   btnFile: HTMLButtonElement,
+ *   btnDownload: HTMLButtonElement,
+ *   btnDict: HTMLButtonElement,
+ *   source: HTMLTextAreaElement,
+ * }} els
+ */
+function setupMobileChrome(els) {
+  const mq = window.matchMedia('(max-width: 820px)');
+  const tabs = els.paneTabs;
+  const moreBtn = els.btnMore;
+  const moreSheet = els.moreSheet;
+  const ctaRow = els.ctaRow;
+  /** @type {{setActivePane: (name: 'source' | 'target') => void, isMobile: () => boolean}} */
+  const api = {
+    setActivePane() {},
+    isMobile: () => mq.matches,
+  };
+
+  if (!tabs || !moreBtn || !moreSheet || !ctaRow) {
+    return api;
+  }
+
+  const moreSlot = /** @type {HTMLElement | null} */ (moreSheet.querySelector('[data-more-slot]'));
+  if (!moreSlot) {
+    return api;
+  }
+
+  const secondary = [els.btnLink, els.btnClear, els.btnFile, els.btnDownload];
+  let mobile = mq.matches;
+
+  /**
+   * @param {'source' | 'target'} name
+   */
+  function setActivePane(name) {
+    els.pairGrid.dataset.activePane = name;
+    for (const tab of tabs.querySelectorAll('[data-pane]')) {
+      const on = tab.getAttribute('data-pane') === name;
+      tab.classList.toggle('is-active', on);
+      tab.setAttribute('aria-selected', on ? 'true' : 'false');
+      tab.tabIndex = on ? 0 : -1;
+    }
+    if (name === 'source' && mobile) {
+      queueMicrotask(() => els.source.focus({ preventScroll: true }));
+    }
+  }
+
+  /**
+   * @param {boolean} open
+   */
+  function setMoreOpen(open) {
+    moreBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    document.body.classList.toggle('more-sheet-open', open);
+    if (open) {
+      moreSheet.hidden = false;
+      requestAnimationFrame(() => {
+        moreSheet.classList.add('is-open');
+      });
+      return;
+    }
+    moreSheet.classList.remove('is-open');
+    window.setTimeout(() => {
+      if (!moreSheet.classList.contains('is-open')) {
+        moreSheet.hidden = true;
+      }
+    }, 320);
+  }
+
+  function measureDock() {
+    if (!mobile) {
+      document.documentElement.style.setProperty('--dock-h', '0px');
+      return;
+    }
+    const h = Math.ceil(ctaRow.getBoundingClientRect().height);
+    document.documentElement.style.setProperty('--dock-h', `${h}px`);
+  }
+
+  function syncLayout() {
+    mobile = mq.matches;
+    tabs.hidden = !mobile;
+    moreBtn.hidden = !mobile;
+    if (mobile) {
+      for (const btn of secondary) {
+        moreSlot.appendChild(btn);
+      }
+    } else {
+      setMoreOpen(false);
+      for (const btn of secondary) {
+        ctaRow.insertBefore(btn, els.btnDict);
+      }
+      setActivePane('source');
+    }
+    measureDock();
+  }
+
+  tabs.addEventListener('click', (ev) => {
+    const t = /** @type {HTMLElement} */ (ev.target);
+    const btn = t.closest('[data-pane]');
+    if (!btn) {
+      return;
+    }
+    const pane = btn.getAttribute('data-pane');
+    if (pane === 'source' || pane === 'target') {
+      setActivePane(pane);
+    }
+  });
+
+  moreBtn.addEventListener('click', () => {
+    setMoreOpen(!moreSheet.classList.contains('is-open'));
+  });
+
+  moreSheet.addEventListener('click', (ev) => {
+    const t = /** @type {HTMLElement} */ (ev.target);
+    if (t.closest('[data-more-close]')) {
+      setMoreOpen(false);
+      return;
+    }
+    if (t.closest('button')) {
+      setMoreOpen(false);
+    }
+  });
+
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape' && !moreSheet.hidden) {
+      setMoreOpen(false);
+    }
+  });
+
+  window.addEventListener('resize', () => {
+    measureDock();
+  });
+
+  if (typeof mq.addEventListener === 'function') {
+    mq.addEventListener('change', syncLayout);
+  } else {
+    mq.addListener(syncLayout);
+  }
+
+  syncLayout();
+  setActivePane(/** @type {'source' | 'target'} */ (els.pairGrid.dataset.activePane || 'source'));
+
+  api.setActivePane = setActivePane;
+  api.isMobile = () => mobile;
+  return api;
+}
+
+/**
+ * Show build version from the Go API when available.
+ * @returns {Promise<void>}
+ */
+async function loadAppVersion() {
+  const el = document.getElementById('app-version');
+  if (!(el instanceof HTMLElement)) {
+    return;
+  }
+  try {
+    const res = await fetch('/api/version');
+    if (!res.ok) {
+      return;
+    }
+    const data = await res.json();
+    const ver = data && typeof data.version === 'string' ? data.version.trim() : '';
+    if (!ver) {
+      return;
+    }
+    el.textContent = `v${ver}`;
+    el.hidden = false;
+  } catch {
+    // Static hosts without the API omit the label.
   }
 }
 

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>translatasm - Fast offline translation in your browser</title>
   <meta name="description" content="Offline neural machine translation in your browser via Bergamot WASM. 27 languages, 52 packs. Text stays on device. Nothing is uploaded.">
   <meta name="keywords" content="offline translator, browser translation, Bergamot, Marian NMT, WASM, privacy, on-device translation">
@@ -64,25 +64,29 @@
   </script>
 </head>
 <body>
-  <a class="source-link" href="https://github.com/Quad4-Software/translatasm" rel="noopener noreferrer" target="_blank">Source</a>
   <div class="atmosphere" aria-hidden="true"></div>
   <main class="stage">
     <header class="brand-block">
-      <p class="brand">translatasm</p>
+      <div class="brand-row">
+        <p class="brand">translatasm</p>
+        <a class="source-link" href="https://github.com/Quad4-Software/translatasm" rel="noopener noreferrer" target="_blank">Source</a>
+      </div>
       <h1 class="headline">Fast offline translation.</h1>
       <p class="lede">Marian tiny packs via Bergamot WASM. Auto-detect, glossary, files, offline dict. Nothing is uploaded.</p>
     </header>
 
     <section class="controls" aria-label="Translator">
       <div class="lang-row">
-        <label class="field">
+        <label class="field lang-field">
           <span>From</span>
           <select id="from"></select>
         </label>
         <button type="button" id="btn-swap" class="ghost swap" title="Swap languages" aria-label="Swap languages">
-          <span aria-hidden="true">Swap</span>
+          <svg class="swap-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path fill="currentColor" d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z"/>
+          </svg>
         </button>
-        <label class="field">
+        <label class="field lang-field">
           <span>To</span>
           <select id="to"></select>
         </label>
@@ -103,16 +107,21 @@
         </label>
       </div>
 
-      <div class="pair-grid" id="pair-grid">
-        <label class="field grow">
+      <div class="pane-tabs" role="tablist" aria-label="Text panes" hidden>
+        <button type="button" class="pane-tab is-active" role="tab" id="tab-source" aria-selected="true" aria-controls="pane-source" data-pane="source">Source</button>
+        <button type="button" class="pane-tab" role="tab" id="tab-target" aria-selected="false" aria-controls="pane-target" data-pane="target">Translation</button>
+      </div>
+
+      <div class="pair-grid" id="pair-grid" data-active-pane="source">
+        <label class="field grow pane-source" id="pane-source" role="tabpanel" aria-labelledby="tab-source">
           <span class="pane-head">
             <span id="source-label">Source</span>
             <span id="source-count" class="count">0</span>
           </span>
-          <textarea id="source" rows="10" placeholder="Type, paste, or drop a .txt / .md / .srt file" spellcheck="true" autofocus></textarea>
+          <textarea id="source" rows="10" placeholder="Type, paste, or drop a .txt / .md / .srt file" spellcheck="true" autofocus enterkeyhint="done"></textarea>
           <div id="source-align" class="align-pane" hidden></div>
         </label>
-        <label class="field grow">
+        <label class="field grow pane-target" id="pane-target" role="tabpanel" aria-labelledby="tab-target">
           <span class="pane-head">
             <span id="target-label">Translation</span>
             <span id="latency" class="count"></span>
@@ -122,7 +131,7 @@
         </label>
       </div>
 
-      <div class="cta-row">
+      <div class="cta-row" id="cta-row">
         <button type="button" id="btn-translate" class="cta primary">
           <svg class="cta-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <path fill="currentColor" d="M12.87 15.07l-2.54-2.51.03-.03c1.74-1.94 2.98-4.17 3.64-6.53H17V4h-7V2H8v2H1v1.99h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-1.04zM18.5 10h-2L12 22h2l1.12-3h6.26L22.5 22h2l-4.5-12zm-1.53 7l1.53-4.11L20.03 17h-3.06z"/>
@@ -135,7 +144,16 @@
         <button type="button" id="btn-file" class="cta secondary">Open file</button>
         <button type="button" id="btn-download" class="cta secondary" disabled>Download</button>
         <button type="button" id="btn-dict" class="cta secondary" data-dict-toggle aria-expanded="false" aria-controls="dict-panel">Dictionary</button>
+        <button type="button" id="btn-more" class="cta secondary more-toggle" aria-expanded="false" aria-controls="more-sheet" hidden>More</button>
         <input id="file-input" type="file" accept=".txt,.md,.markdown,.srt,text/plain,text/markdown" hidden>
+      </div>
+
+      <div id="more-sheet" class="more-sheet" hidden>
+        <div class="more-sheet-scrim" data-more-close tabindex="-1"></div>
+        <div class="more-sheet-panel" role="dialog" aria-label="More actions" aria-modal="true">
+          <div class="more-handle" aria-hidden="true"></div>
+          <div class="more-actions" data-more-slot></div>
+        </div>
       </div>
 
       <div class="status-row">
@@ -151,7 +169,9 @@
   </main>
 
   <div id="dict-root" class="dict-root">
+    <div class="dict-scrim" data-dict-close tabindex="-1" hidden></div>
     <aside id="dict-panel" class="dict-panel" data-dict-panel aria-hidden="true" aria-label="Offline dictionary">
+      <div class="dict-handle" aria-hidden="true"></div>
       <header class="dict-panel-head">
         <h2 class="dict-title">Dictionary</h2>
         <button type="button" class="ghost dict-close" data-dict-close aria-label="Close dictionary">Close</button>
@@ -159,7 +179,7 @@
       <form class="dict-form" data-dict-form>
         <label class="field grow">
           <span>Look up</span>
-          <input id="dict-input" type="search" data-dict-input placeholder="Word" autocomplete="off" spellcheck="false">
+          <input id="dict-input" type="search" data-dict-input placeholder="Word" autocomplete="off" spellcheck="false" enterkeyhint="search">
         </label>
         <button type="submit" class="cta secondary">Go</button>
       </form>
@@ -210,6 +230,7 @@
   <footer class="site-foot">
     <a href="https://github.com/Quad4-Software/translatasm/blob/master/LICENSE" rel="noopener noreferrer" target="_blank">0BSD</a>
     <a href="https://github.com/Quad4-Software" rel="noopener noreferrer" target="_blank">Quad4</a>
+    <span id="app-version" class="site-version" hidden></span>
   </footer>
   <script type="module" src="/js/main.js"></script>
 </body>
