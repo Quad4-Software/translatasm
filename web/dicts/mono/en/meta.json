@@ -1,0 +1,11 @@
+{
+  "lang": "en",
+  "entries": 5,
+  "bytes": 1200,
+  "size_hint_mb": 0.01,
+  "shards": [
+    {"id": "h", "path": "mono/en/h.json", "entries": 3, "bytes": 500},
+    {"id": "r", "path": "mono/en/r.json", "entries": 4, "bytes": 500}
+  ],
+  "attribution": "Wiktionary via Kaikki.org / Wiktextract (CC BY-SA)"
+}

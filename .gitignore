@@ -13,3 +13,14 @@ web/models/**
 !web/models/
 !web/models/.gitkeep
 !web/vendor/.gitkeep
+web/dicts/tmp/
+web/dicts/mono/**
+!web/dicts/mono/
+!web/dicts/mono/en/
+!web/dicts/mono/en/**
+!web/dicts/mono/es/
+!web/dicts/mono/es/**
+web/dicts/bi/**
+!web/dicts/bi/
+!web/dicts/bi/enes.json
+!web/dicts/bi/esen.json

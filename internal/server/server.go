@@ -283,7 +283,7 @@ func setCacheHeaders(w http.ResponseWriter, rel string) {
 	switch {
 	case rel == "sw.js", rel == "manifest.webmanifest":
 		w.Header().Set("Cache-Control", "no-cache")
-	case strings.HasPrefix(rel, "models/"), strings.HasPrefix(rel, "vendor/"):
+	case strings.HasPrefix(rel, "models/"), strings.HasPrefix(rel, "dicts/"), strings.HasPrefix(rel, "vendor/"):
 		w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 	case strings.HasSuffix(rel, ".wasm"):
 		w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")

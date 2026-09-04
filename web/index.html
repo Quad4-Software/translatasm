@@ -114,6 +114,7 @@
         </button>
         <button type="button" id="btn-copy" class="cta secondary" disabled>Copy</button>
         <button type="button" id="btn-clear" class="cta secondary" disabled>Clear</button>
+        <button type="button" id="btn-dict" class="cta secondary" data-dict-toggle aria-expanded="false" aria-controls="dict-panel">Dictionary</button>
       </div>
 
       <div class="status-row">
@@ -127,6 +128,32 @@
       <p id="error" class="error" role="alert" hidden></p>
     </section>
   </main>
+
+  <div id="dict-root" class="dict-root">
+    <div class="dict-backdrop" data-dict-backdrop hidden></div>
+    <aside id="dict-panel" class="dict-panel" data-dict-panel aria-hidden="true" aria-label="Offline dictionary">
+      <header class="dict-panel-head">
+        <h2 class="dict-title">Dictionary</h2>
+        <button type="button" class="ghost dict-close" data-dict-close aria-label="Close dictionary">Close</button>
+      </header>
+      <form class="dict-form" data-dict-form>
+        <label class="field grow">
+          <span>Look up</span>
+          <input id="dict-input" type="search" data-dict-input placeholder="Word" autocomplete="off" spellcheck="false">
+        </label>
+        <button type="submit" class="cta secondary">Go</button>
+      </form>
+      <p class="dict-status" data-dict-status role="status">Click a word in the translator or search here.</p>
+      <div class="dict-result" data-dict-result></div>
+      <button type="button" class="cta secondary dict-save" data-dict-save disabled>Save to vocab</button>
+      <section class="dict-vocab-block" aria-label="Saved vocabulary">
+        <h3 class="dict-sub">Vocab</h3>
+        <div data-dict-vocab></div>
+      </section>
+      <p class="dict-attr" data-dict-attr></p>
+    </aside>
+  </div>
+
   <footer class="site-foot">
     <a href="https://github.com/Quad4-Software/translatasm/blob/master/LICENSE" rel="noopener noreferrer" target="_blank">0BSD</a>
     <a href="https://github.com/Quad4-Software" rel="noopener noreferrer" target="_blank">Quad4</a>

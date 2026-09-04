@@ -1,0 +1,28 @@
+{
+  "lang": "es",
+  "shard": "c",
+  "entries": {
+    "casa": {
+      "w": "casa",
+      "pos": "noun",
+      "ipa": "/ˈkasa/",
+      "senses": [
+        {"g": "House dwelling.", "e": "Vivo en una casa grande.", "s": ["hogar"]},
+        {"g": "Household or family line."}
+      ],
+      "forms": ["casas"]
+    },
+    "casas": {"w": "casas", "points_to": "casa"},
+    "correr": {
+      "w": "correr",
+      "pos": "verb",
+      "ipa": "/koˈreɾ/",
+      "senses": [
+        {"g": "To run.", "e": "Me gusta correr por la mañana."}
+      ],
+      "forms": ["corriendo", "corre"]
+    },
+    "corre": {"w": "corre", "points_to": "correr"},
+    "corriendo": {"w": "corriendo", "points_to": "correr"}
+  }
+}

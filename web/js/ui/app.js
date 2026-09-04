@@ -1,6 +1,7 @@
 import { createEngine, registerEngine } from '../engine/registry.js';
 import { createBergamotEngine, hasNativeIntGemm } from '../engine/bergamot.js';
 import { canTranslate, findDirect, languageLabel } from '../engine/pairs.js';
+import { mountDictDrawer, wordAtCaret } from '../dict/drawer.js';
 
 registerEngine('bergamot', createBergamotEngine);
 
@@ -138,6 +139,34 @@ export async function bootApp() {
       runTranslate({ force: true }).catch(showError);
     }
   });
+
+  const dictRoot = document.getElementById('dict-root');
+  const dict =
+    dictRoot &&
+    mountDictDrawer({
+      root: dictRoot,
+      getPair: () => ({ from: els.from.value, to: els.to.value }),
+      onStatus: (msg) => setStatus(msg),
+    });
+
+  /**
+   * @param {HTMLTextAreaElement} el
+   * @param {'source' | 'target'} pane
+   */
+  function bindWordLookup(el, pane) {
+    el.addEventListener('dblclick', () => {
+      if (!dict) {
+        return;
+      }
+      const word = wordAtCaret(el);
+      if (!word) {
+        return;
+      }
+      dict.lookUp(word, pane).catch(showError);
+    });
+  }
+  bindWordLookup(els.source, 'source');
+  bindWordLookup(els.target, 'target');
 
   /**
    * @param {{quiet?: boolean, force?: boolean}} [mode]

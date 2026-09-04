@@ -1,0 +1,10 @@
+{
+  "from": "en",
+  "to": "es",
+  "entries": {
+    "house": ["casa", "hogar"],
+    "hello": ["hola"],
+    "run": ["correr", "gestionar"]
+  },
+  "attribution": "FreeDict (free bilingual dictionaries)"
+}

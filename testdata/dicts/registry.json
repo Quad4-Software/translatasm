@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "pivot": "en",
+  "attribution": [
+    "Monolingual definitions: Wiktionary via Kaikki.org / Wiktextract (CC BY-SA)",
+    "Bilingual glosses: FreeDict"
+  ],
+  "mono": {
+    "en": {
+      "lang": "en",
+      "path": "mono/en/meta.json",
+      "entries": 5,
+      "size_hint_mb": 0.01,
+      "shards": [
+        {"id": "h", "path": "mono/en/h.json", "entries": 3, "bytes": 500},
+        {"id": "r", "path": "mono/en/r.json", "entries": 4, "bytes": 500}
+      ],
+      "attribution": "Wiktionary via Kaikki.org / Wiktextract (CC BY-SA)"
+    },
+    "es": {
+      "lang": "es",
+      "path": "mono/es/meta.json",
+      "entries": 5,
+      "size_hint_mb": 0.01,
+      "shards": [
+        {"id": "c", "path": "mono/es/c.json", "entries": 5, "bytes": 900}
+      ],
+      "attribution": "Wiktionary via Kaikki.org / Wiktextract (CC BY-SA)"
+    }
+  },
+  "bi": {
+    "enes": {
+      "id": "enes",
+      "from": "en",
+      "to": "es",
+      "path": "bi/enes.json",
+      "entries": 3,
+      "size_hint_mb": 0.01,
+      "attribution": "FreeDict"
+    },
+    "esen": {
+      "id": "esen",
+      "from": "es",
+      "to": "en",
+      "path": "bi/esen.json",
+      "entries": 3,
+      "size_hint_mb": 0.01,
+      "attribution": "FreeDict"
+    }
+  }
+}

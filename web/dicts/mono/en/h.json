@@ -1,0 +1,25 @@
+{
+  "lang": "en",
+  "shard": "h",
+  "entries": {
+    "house": {
+      "w": "house",
+      "pos": "noun",
+      "ipa": "/haʊs/",
+      "senses": [
+        {"g": "A building used as a dwelling.", "e": "They bought a new house.", "s": ["home", "dwelling"]},
+        {"g": "A dynasty or noble family."}
+      ],
+      "forms": ["houses"]
+    },
+    "houses": {"w": "houses", "points_to": "house"},
+    "hello": {
+      "w": "hello",
+      "pos": "interj",
+      "ipa": "/həˈloʊ/",
+      "senses": [
+        {"g": "A greeting.", "e": "Hello, how are you?"}
+      ]
+    }
+  }
+}

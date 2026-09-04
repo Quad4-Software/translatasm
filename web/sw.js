@@ -1,5 +1,5 @@
 /* translatasm service worker: offline shell + auto-update */
-const CACHE_VERSION = 'translatasm-v0.3.1';
+const CACHE_VERSION = 'translatasm-v0.4.0';
 const SHELL_CACHE = `${CACHE_VERSION}-shell`;
 const ASSET_CACHE = `${CACHE_VERSION}-assets`;
 
@@ -14,6 +14,12 @@ const PRECACHE = [
   '/js/engine/registry.js',
   '/js/engine/types.js',
   '/js/engine/bergamot.js',
+  '/js/engine/pairs.js',
+  '/js/dict/registry.js',
+  '/js/dict/packs.js',
+  '/js/dict/lookup.js',
+  '/js/dict/vocab.js',
+  '/js/dict/drawer.js',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
   '/fonts/bricolage-700.woff2',
@@ -30,6 +36,7 @@ const PRECACHE = [
   '/vendor/bergamot/worker/translator-worker.js',
   '/models/registry.json',
   '/catalog.json',
+  '/dicts/registry.json',
 ];
 
 self.addEventListener('install', (event) => {
@@ -93,6 +100,7 @@ self.addEventListener('fetch', (event) => {
 
   if (
     url.pathname.startsWith('/models/') ||
+    url.pathname.startsWith('/dicts/') ||
     url.pathname.startsWith('/vendor/') ||
     url.pathname.startsWith('/fonts/') ||
     url.pathname.startsWith('/icons/')
