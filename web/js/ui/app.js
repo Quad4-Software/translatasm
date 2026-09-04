@@ -77,8 +77,6 @@ export async function bootApp() {
     paneTabs: /** @type {HTMLElement | null} */ (document.querySelector('.pane-tabs')),
     ctaRow: /** @type {HTMLElement | null} */ (document.getElementById('cta-row')),
     fileInput: /** @type {HTMLInputElement} */ (document.getElementById('file-input')),
-    optAuto: /** @type {HTMLInputElement} */ (document.getElementById('opt-auto')),
-    optHtml: /** @type {HTMLInputElement} */ (document.getElementById('opt-html')),
     optAlign: /** @type {HTMLInputElement} */ (document.getElementById('opt-align')),
   };
 
@@ -118,34 +116,32 @@ export async function bootApp() {
   const prefs = loadPrefs();
   const urlState = parseUrlState(location.search, catalogCodes);
 
-  const initialFrom = urlState.from || prefs.from || 'en';
+  const wantAuto =
+    urlState.auto === true ||
+    (!urlState.from && Boolean(prefs.autoDetect)) ||
+    prefs.from === AUTO_VALUE;
+  const initialFrom = wantAuto ? AUTO_VALUE : urlState.from || prefs.from || 'en';
   const initialTo = urlState.to || prefs.to || 'es';
   fillLanguageSelect(els.from, languages, initialFrom, true);
   fillLanguageSelect(els.to, languages, initialTo, false);
 
-  if (urlState.auto != null) {
-    els.optAuto.checked = urlState.auto;
-  } else if (prefs.autoDetect != null) {
-    els.optAuto.checked = Boolean(prefs.autoDetect);
-  }
-  if (urlState.html != null) {
-    els.optHtml.checked = urlState.html;
-  } else if (prefs.htmlMode != null) {
-    els.optHtml.checked = Boolean(prefs.htmlMode);
-  }
   if (urlState.align != null) {
     els.optAlign.checked = urlState.align;
   } else if (prefs.alignMode != null) {
     els.optAlign.checked = Boolean(prefs.alignMode);
   }
 
-  if (els.optAuto.checked) {
-    els.from.value = AUTO_VALUE;
-  }
   if (els.from.value === els.to.value && els.from.value !== AUTO_VALUE) {
     els.to.value = els.from.value === 'en' ? 'es' : 'en';
   }
-  resolvedFrom = els.from.value === AUTO_VALUE ? initialFrom === AUTO_VALUE ? 'en' : initialFrom : els.from.value;
+  resolvedFrom =
+    els.from.value === AUTO_VALUE
+      ? urlState.from && urlState.from !== AUTO_VALUE
+        ? urlState.from
+        : prefs.from && prefs.from !== AUTO_VALUE
+          ? prefs.from
+          : 'en'
+      : els.from.value;
   if (urlState.q) {
     els.source.value = urlState.q;
   }
@@ -182,10 +178,7 @@ export async function bootApp() {
   }
 
   els.from.addEventListener('change', () => {
-    if (els.from.value === AUTO_VALUE) {
-      els.optAuto.checked = true;
-    } else {
-      els.optAuto.checked = false;
+    if (els.from.value !== AUTO_VALUE) {
       resolvedFrom = els.from.value;
       if (els.from.value === els.to.value) {
         const alt = languages.find((l) => l.code !== els.from.value);
@@ -211,31 +204,8 @@ export async function bootApp() {
     }
     onPairChanged().catch(showError);
   });
-  els.optAuto.addEventListener('change', () => {
-    if (els.optAuto.checked) {
-      els.from.value = AUTO_VALUE;
-    } else if (els.from.value === AUTO_VALUE) {
-      els.from.value = resolvedFrom;
-    }
-    savePrefs();
-    syncShareUrl(true);
-    scheduleDetectAndTranslate();
-  });
-  els.optHtml.addEventListener('change', () => {
-    if (els.optHtml.checked) {
-      els.optAlign.checked = false;
-      hideAlignPanes();
-    }
-    savePrefs();
-    syncShareUrl(true);
-    if (ready && els.source.value.trim()) {
-      runTranslate({ quiet: true }).catch(showError);
-    }
-  });
   els.optAlign.addEventListener('change', () => {
-    if (els.optAlign.checked) {
-      els.optHtml.checked = false;
-    } else {
+    if (!els.optAlign.checked) {
       hideAlignPanes();
     }
     savePrefs();
@@ -285,15 +255,6 @@ export async function bootApp() {
     }
   });
 
-  els.source.addEventListener('paste', (ev) => {
-    const clip = ev.clipboardData?.getData('text') || '';
-    if (looksLikeHtml(clip) && !els.optHtml.checked) {
-      els.optHtml.checked = true;
-      els.optAlign.checked = false;
-      savePrefs();
-    }
-  });
-
   els.source.addEventListener('input', () => {
     updateCounts();
     els.btnClear.disabled = !els.source.value && !els.target.value;
@@ -337,7 +298,7 @@ export async function bootApp() {
     window.clearTimeout(finishedTimer);
     window.clearTimeout(detectTimer);
     const text = els.source.value;
-    if (els.optAuto.checked) {
+    if (els.from.value === AUTO_VALUE) {
       detectTimer = window.setTimeout(() => {
         runDetect()
           .then(() => runTranslate({ quiet: true }))
@@ -347,7 +308,7 @@ export async function bootApp() {
       return;
     }
 
-    const htmlMode = els.optHtml.checked;
+    const htmlMode = looksLikeHtml(text);
     const alignMode = els.optAlign.checked && !htmlMode;
     if (htmlMode || alignMode) {
       liveTimer = window.setTimeout(() => {
@@ -397,7 +358,7 @@ export async function bootApp() {
    * @returns {Promise<void>}
    */
   async function runDetect() {
-    if (!els.optAuto.checked) {
+    if (els.from.value !== AUTO_VALUE) {
       return;
     }
     const text = els.source.value.trim();
@@ -427,7 +388,7 @@ export async function bootApp() {
    * @returns {string}
    */
   function effectiveFrom() {
-    if (els.from.value === AUTO_VALUE || els.optAuto.checked) {
+    if (els.from.value === AUTO_VALUE) {
       return resolvedFrom;
     }
     return els.from.value;
@@ -444,7 +405,7 @@ export async function bootApp() {
     const from = effectiveFrom();
     const to = els.to.value;
     const text = els.source.value;
-    const htmlMode = els.optHtml.checked;
+    const htmlMode = looksLikeHtml(text);
     const alignMode = els.optAlign.checked && !htmlMode;
 
     if (!text.trim()) {
@@ -625,16 +586,11 @@ export async function bootApp() {
     const body = await readTextFile(file);
     lastFile = { name: file.name, kind: kind || 'txt', body };
     if (kind === 'srt') {
-      els.optHtml.checked = false;
       els.optAlign.checked = false;
       await translateSrtFile(body, file.name);
       return;
     }
     els.source.value = body;
-    if (looksLikeHtml(body)) {
-      els.optHtml.checked = true;
-      els.optAlign.checked = false;
-    }
     updateCounts();
     savePrefs();
     setStatus(`Loaded ${file.name}`);
@@ -745,7 +701,7 @@ export async function bootApp() {
       setStatus('Downloaded SRT.');
       return;
     }
-    const ext = lastFile?.kind === 'md' ? 'md' : els.optHtml.checked ? 'html' : 'txt';
+    const ext = lastFile?.kind === 'md' ? 'md' : looksLikeHtml(els.source.value) ? 'html' : 'txt';
     downloadText(`translated.${ext}`, text);
     setStatus('Downloaded translation.');
   }
@@ -800,7 +756,6 @@ export async function bootApp() {
       return;
     }
     const carried = els.target.value;
-    els.optAuto.checked = false;
     els.from.value = to;
     els.to.value = from;
     resolvedFrom = to;
@@ -899,7 +854,7 @@ export async function bootApp() {
     const fromLabel = languageLabel(from, languages);
     const toLabel = languageLabel(els.to.value, languages);
     if (els.sourceLabel) {
-      const auto = els.optAuto.checked ? ' (auto)' : '';
+      const auto = els.from.value === AUTO_VALUE ? ' (auto)' : '';
       els.sourceLabel.textContent = `${fromLabel}${auto}`;
     }
     if (els.targetLabel) {
@@ -945,13 +900,15 @@ export async function bootApp() {
    * @param {boolean} includeQ
    */
   function syncShareUrl(includeQ) {
+    const auto = els.from.value === AUTO_VALUE;
+    const htmlMode = looksLikeHtml(els.source.value);
     syncUrlState(
       {
-        from: els.optAuto.checked ? effectiveFrom() : els.from.value === AUTO_VALUE ? effectiveFrom() : els.from.value,
+        from: auto ? effectiveFrom() : els.from.value,
         to: els.to.value,
         q: includeQ ? els.source.value : undefined,
-        html: els.optHtml.checked || undefined,
-        auto: els.optAuto.checked || undefined,
+        html: htmlMode || undefined,
+        auto: auto || undefined,
         align: els.optAlign.checked || undefined,
       },
       { includeQ, replace: true },
@@ -965,8 +922,7 @@ export async function bootApp() {
         JSON.stringify({
           from: els.from.value === AUTO_VALUE ? resolvedFrom : els.from.value,
           to: els.to.value,
-          autoDetect: els.optAuto.checked,
-          htmlMode: els.optHtml.checked,
+          autoDetect: els.from.value === AUTO_VALUE,
           alignMode: els.optAlign.checked,
         }),
       );
@@ -1283,7 +1239,7 @@ function fillLanguageSelect(select, languages, selected, withAuto) {
 }
 
 /**
- * @returns {{from?: string, to?: string, autoDetect?: boolean, htmlMode?: boolean, alignMode?: boolean}}
+ * @returns {{from?: string, to?: string, autoDetect?: boolean, alignMode?: boolean}}
  */
 function loadPrefs() {
   try {
