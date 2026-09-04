@@ -8,14 +8,14 @@ name: translatasm
 
 services:
   translatasm:
+    image: ${IMAGE:-ghcr.io/quad4-software/translatasm:${VERSION:-0.1.0}}
     build:
       context: .
       dockerfile: Dockerfile
       args:
-        VERSION: "0.1.0"
+        VERSION: "${VERSION:-0.1.0}"
         REVISION: ${SOURCE_COMMIT:-unknown}
         CREATED: ${CREATED:-unknown}
-    image: translatasm:0.1.0
     restart: unless-stopped
     init: true
     expose:

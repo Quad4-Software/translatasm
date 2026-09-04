@@ -2,6 +2,7 @@
 
 # Multi-stage rootless image for translatasm.
 # Base digests pinned to multi-arch OCI indexes (Alpine 3.24 / Go 1.26-alpine).
+# Assets stage downloads Bergamot WASM + Marian packs for a full offline image.
 
 ARG ALPINE_DIGEST=sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
 ARG GOLANG_DIGEST=sha256:ce864e7223ac17b1775e6fd0b4c0db580c2eb50e7953a427916379e4b92a1628
@@ -33,6 +34,32 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 		-o /out/translatasm \
 		./cmd/translatasm
 
+FROM golang:1.26-alpine@${GOLANG_DIGEST} AS assets
+
+RUN apk add --no-cache curl bash gzip python3
+
+WORKDIR /src
+COPY go.mod ./
+COPY cmd ./cmd
+COPY internal ./internal
+COPY scripts/fetch-assets.sh scripts/fetch-firefox-wasm.sh ./scripts/
+COPY web ./web
+
+ARG TRANSLATASM_EXTRAS=1
+ARG TRANSLATASM_CJK=0
+ARG TRANSLATASM_PAIRS=all
+
+RUN chmod +x scripts/fetch-assets.sh scripts/fetch-firefox-wasm.sh \
+	&& TRANSLATASM_EXTRAS="${TRANSLATASM_EXTRAS}" \
+		TRANSLATASM_CJK="${TRANSLATASM_CJK}" \
+		TRANSLATASM_PAIRS="${TRANSLATASM_PAIRS}" \
+		bash scripts/fetch-assets.sh \
+	&& if [ "${TRANSLATASM_CJK}" = "1" ]; then \
+		apk add --no-cache zstd \
+		&& bash scripts/fetch-firefox-wasm.sh; \
+	fi \
+	&& go run ./cmd/gencatalog -o web/catalog.json
+
 FROM alpine:3.24@${ALPINE_DIGEST} AS runtime
 
 ARG VERSION
@@ -62,9 +89,12 @@ RUN apk upgrade --no-cache \
 	&& chown -R nonroot:nonroot /app
 
 COPY --from=builder --chown=nonroot:nonroot /out/translatasm /app/translatasm
-COPY --chown=nonroot:nonroot web /app/web
+COPY --from=assets --chown=nonroot:nonroot /src/web /app/web
 
-RUN chmod 0555 /app/translatasm \
+RUN test -f /app/web/vendor/bergamot/worker/bergamot-translator-worker.wasm \
+	&& test -f /app/web/models/registry.json \
+	&& test -f /app/web/catalog.json \
+	&& chmod 0555 /app/translatasm \
 	&& chmod -R a-w /app/web
 
 ENV TRANSLATASM_ADDR=":8080" \
