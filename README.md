@@ -77,8 +77,8 @@ make bench
 ## Speed notes
 
 - One Bergamot worker stays warm (no reload on language change)
-- Translation cache (~128k entries) and Firefox native IntGEMM when available
-- Unused language packs are freed from the WASM heap when the pair changes
+- Translation cache (~16k entries) and Firefox native IntGEMM when available
+- Unused language packs are freed from the WASM heap and JS buffers when the pair changes
 - Paragraph chunking for long text (HTML-safe splits when HTML mode is on)
 - Direct packs when available, otherwise pivot through English
 

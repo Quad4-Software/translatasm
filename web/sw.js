@@ -1,5 +1,5 @@
 /* translatasm service worker: offline shell + auto-update */
-const CACHE_VERSION = 'translatasm-v0.5.0';
+const CACHE_VERSION = 'translatasm-v0.5.1';
 const SHELL_CACHE = `${CACHE_VERSION}-shell`;
 const ASSET_CACHE = `${CACHE_VERSION}-assets`;
 

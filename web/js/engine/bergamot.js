@@ -28,7 +28,8 @@ class LocalBacking extends TranslatorBacking {
       pivotLanguage: safe.pivotLanguage ?? 'en',
       // Must live on backing options. LatencyOptimisedTranslator does not
       // forward its own options into initialize() when a custom backing is used.
-      cacheSize: safe.cacheSize ?? 131072,
+      // Marian docs: 2^14 is a solid interactive default. Real use is ~1/3 of this.
+      cacheSize: safe.cacheSize ?? 16384,
       useNativeIntGemm: safe.useNativeIntGemm !== false,
     });
     if (typeof onerror === 'function') {
@@ -108,7 +109,7 @@ export function createBergamotEngine() {
       onProgress?.({ status: 'loading', progress: 0.05, file: 'bergamot-wasm' });
       const backing = new LocalBacking({
         onerror: (err) => console.error('bergamot worker', err),
-        cacheSize: 131072,
+        cacheSize: 16384,
         useNativeIntGemm: true,
       });
       const t = new LatencyOptimisedTranslator({}, backing);
@@ -134,27 +135,105 @@ export function createBergamotEngine() {
   }
 
   /**
-   * Drop WASM models that are not the active route to keep heap small.
+   * @param {string} from
+   * @param {string} to
+   */
+  function bufferKey(from, to) {
+    return JSON.stringify({ from, to });
+  }
+
+  /**
+   * Drop main-thread ArrayBuffers for a pair (~20MB each) after WASM copy.
+   * Service worker cacheFirst still makes the next fetch fast.
+   * @param {LatencyOptimisedTranslator} t
+   * @param {string} from
+   * @param {string} to
+   */
+  function dropPairBuffers(t, from, to) {
+    try {
+      t.backing?.buffers?.delete(bufferKey(from, to));
+    } catch {
+      // ignore
+    }
+  }
+
+  /**
+   * Free one WASM model and its JS ArrayBuffers.
+   * @param {LatencyOptimisedTranslator} t
+   * @param {string} from
+   * @param {string} to
+   */
+  async function releasePair(t, from, to) {
+    const key = pairKey(from, to);
+    const worker = await t.worker;
+    const exports = worker?.exports;
+    if (exports && typeof exports.freeTranslationModel === 'function') {
+      try {
+        await exports.freeTranslationModel({ from, to });
+      } catch {
+        // ignore prune failures
+      }
+    }
+    loadedPairs.delete(key);
+    dropPairBuffers(t, from, to);
+  }
+
+  /**
+   * Fetch model files so the service worker caches them, without loading WASM.
+   * @param {LatencyOptimisedTranslator} t
+   * @param {string} from
+   * @param {string} to
+   */
+  async function warmPairCache(t, from, to) {
+    const registry = await t.backing.registry;
+    const entry = registry.find((m) => m.from === from && m.to === to);
+    if (!entry?.files) {
+      return;
+    }
+    // Sequential to avoid holding every file buffer at once.
+    for (const file of Object.values(entry.files)) {
+      if (!file || typeof file.name !== 'string') {
+        continue;
+      }
+      try {
+        await t.backing.fetch(file.name, file.expectedSha256Hash);
+      } catch {
+        // ignore warm failures
+      }
+    }
+  }
+
+  /**
+   * Drop WASM models and JS buffers that are not the active route.
    * @param {LatencyOptimisedTranslator} t
    * @param {string[]} keep
    */
   async function pruneModels(t, keep) {
     const keepSet = new Set(keep);
-    const worker = await t.worker;
-    const exports = worker?.exports;
-    if (!exports || typeof exports.freeTranslationModel !== 'function') {
-      return;
-    }
     for (const key of [...loadedPairs]) {
       if (keepSet.has(key)) {
         continue;
       }
       const [from, to] = key.split('|');
+      await releasePair(t, from, to);
+    }
+    const buffers = t.backing?.buffers;
+    if (!buffers || typeof buffers.keys !== 'function') {
+      return;
+    }
+    for (const bufKey of [...buffers.keys()]) {
       try {
-        await exports.freeTranslationModel({ from, to });
-        loadedPairs.delete(key);
+        const parsed = JSON.parse(String(bufKey));
+        const from = parsed?.from;
+        const to = parsed?.to;
+        if (typeof from !== 'string' || typeof to !== 'string') {
+          continue;
+        }
+        if (!keepSet.has(pairKey(from, to))) {
+          buffers.delete(bufKey);
+        }
       } catch {
-        // ignore prune failures
+        // ignore malformed keys
       }
     }
   }
@@ -237,6 +316,13 @@ export function createBergamotEngine() {
             loadedPairs.add(pairKey(from, 'en'));
             loadedPairs.add(pairKey('en', to));
           }
+          // Model is resident in WASM. Drop JS copies to avoid ~20MB dual retention.
+          if (i === 0) {
+            for (const key of keep) {
+              const [kf, kt] = key.split('|');
+              dropPairBuffers(t, kf, kt);
+            }
+          }
         } catch (err) {
           if (err instanceof SupersededError || err instanceof CancelledError) {
             throw err;
@@ -282,13 +368,13 @@ export function createBergamotEngine() {
         loadedPairs.add(pairKey(from, 'en'));
         loadedPairs.add(pairKey('en', to));
       }
-      // Warm reverse pack in the background for swap.
+      for (const key of keep) {
+        const [kf, kt] = key.split('|');
+        dropPairBuffers(t, kf, kt);
+      }
+      // Prefetch swap direction into Cache Storage only (no second WASM model).
       if (from !== to) {
-        t.translate({ from: to, to: from, text: '.', html: false })
-          .then(() => {
-            loadedPairs.add(pairKey(to, from));
-          })
-          .catch(() => {});
+        warmPairCache(t, to, from).catch(() => {});
       }
       lastFrom = from;
       lastTo = to;
