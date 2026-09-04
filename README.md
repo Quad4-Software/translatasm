@@ -1,10 +1,20 @@
 # translatasm
 
+[![CI](https://img.shields.io/github/actions/workflow/status/Quad4-Software/translatasm/ci.yml?branch=master&style=flat-square&label=ci&labelColor=0a0a0b&color=8ad0c6)](https://github.com/Quad4-Software/translatasm/actions/workflows/ci.yml) [![version](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FQuad4-Software%2Ftranslatasm%2Fmaster%2Fbadges%2Fversion.json)](https://github.com/Quad4-Software/translatasm/releases) [![license](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FQuad4-Software%2Ftranslatasm%2Fmaster%2Fbadges%2Flicense.json)](https://github.com/Quad4-Software/translatasm/blob/master/LICENSE) [![go](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FQuad4-Software%2Ftranslatasm%2Fmaster%2Fbadges%2Fgo.json)](https://go.dev/dl/) [![offline](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FQuad4-Software%2Ftranslatasm%2Fmaster%2Fbadges%2Foffline.json)](https://translatasm.quad4.io) [![docker](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FQuad4-Software%2Ftranslatasm%2Fmaster%2Fbadges%2Fdocker.json)](https://github.com/orgs/Quad4-Software/packages/container/package/translatasm) [![live](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FQuad4-Software%2Ftranslatasm%2Fmaster%2Fbadges%2Flive.json)](https://translatasm.quad4.io)
+
 Offline neural machine translation in the browser via Bergamot (Marian NMT) WASM.
 
 **29 languages** (includes Chinese and Japanese when CJK packs are fetched), 56 direct packs with English pivot for cross pairs. Text stays on device after models load.
 
 **Live:** [https://translatasm.quad4.io](https://translatasm.quad4.io)
+
+![translatasm desktop](docs/screenshots/desktop.png)
+
+<p align="center">
+  <img src="docs/screenshots/mobile.png" alt="translatasm mobile" width="280">
+  &nbsp;
+  <img src="docs/screenshots/dict.png" alt="translatasm dictionary drawer" width="560">
+</p>
 
 ## Languages
 
@@ -20,27 +30,64 @@ That fetches 2.x language packs and Firefox Remote Settings WASM into `web/vendo
 
 ## Install (Docker)
 
+Clone and build (downloads Bergamot WASM + language packs into the image, ~1.2 GB):
+
 ```bash
-git clone git@github.com:Quad4-Software/translatasm.git
+git clone https://github.com/Quad4-Software/translatasm.git
 cd translatasm
-make assets
 docker compose up --build
 ```
 
 Open [http://127.0.0.1:8080](http://127.0.0.1:8080).
 
-Build with full dictionary packs baked in:
+Pre-built multi-arch image (`linux/amd64`, `linux/arm64`):
 
 ```bash
-TRANSLATASM_DICTS=1 make assets
-docker compose up --build
+docker pull ghcr.io/quad4-software/translatasm:latest
+docker run --rm -p 8080:8080 ghcr.io/quad4-software/translatasm:latest
 ```
+
+Or with Compose against the published image:
+
+```bash
+git clone https://github.com/Quad4-Software/translatasm.git
+cd translatasm
+IMAGE=ghcr.io/quad4-software/translatasm:latest docker compose up
+```
+
+Coolify: use `docker-compose.coolify.yml` and set the domain to container port `8080`.
+
+CJK packs in the image:
+
+```bash
+docker compose build --build-arg TRANSLATASM_CJK=1
+```
+
+Optional host-side asset prefetch (only needed for source builds, not Docker):
+
+```bash
+make assets
+TRANSLATASM_DICTS=1 make assets
+```
+
+## Release binaries
+
+Tagged releases publish static Go servers for Linux, Windows, macOS, FreeBSD, OpenBSD, NetBSD (amd64, arm64, arm, 386, riscv64, and other supported arches).
+
+```bash
+curl -LO https://github.com/Quad4-Software/translatasm/releases/latest/download/translatasm_X.Y.Z_linux_amd64.tar.gz
+tar xzf translatasm_*.tar.gz
+./translatasm -web /path/to/web -addr :8080
+```
+
+The binary serves a `web/` tree. For a full offline tree, clone and run `make assets`, or use the container image (recommended).
 
 ## Build from source
 
 Needs Go 1.26+, `curl`, `gunzip`, and Python 3.
 
 ```bash
+git clone https://github.com/Quad4-Software/translatasm.git
 cd translatasm
 make assets   # WASM + Bergamot tiny packs + Firefox extras (~1.1 GB)
 make run
@@ -62,6 +109,23 @@ TRANSLATASM_PAIRS="enes esen enfr fren" TRANSLATASM_EXTRAS=0 make assets
 make test
 make bench
 ```
+
+## Screenshots
+
+Regen README images (Playwright, system Chromium when present):
+
+```bash
+make screenshots
+```
+
+Defaults to the live site. Local static `web/` or a running server:
+
+```bash
+SCREENSHOT_LOCAL=1 make screenshots
+SCREENSHOT_URL=http://127.0.0.1:8080 make screenshots
+```
+
+Single shot: `node scripts/screenshot.mjs --only desktop` (after `make screenshots` once so `.tools` has Playwright). CI workflow **Screenshots** uploads fresh PNGs as artifacts on `workflow_dispatch`.
 
 ## Features
 
