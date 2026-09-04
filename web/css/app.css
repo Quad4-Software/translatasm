@@ -572,42 +572,6 @@ body.more-sheet-open {
     align-self: end;
   }
 
-  .mode-row {
-    gap: 0.4rem;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    padding-bottom: 0.1rem;
-  }
-
-  .mode-row::-webkit-scrollbar {
-    display: none;
-  }
-
-  .check {
-    flex: 0 0 auto;
-    gap: 0.4rem;
-    min-height: 2.4rem;
-    padding: 0.45rem 0.85rem;
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--panel) 80%, transparent);
-    font-size: 0.84rem;
-    white-space: nowrap;
-  }
-
-  .check input {
-    width: 1.05rem;
-    height: 1.05rem;
-  }
-
-  .check:has(input:checked) {
-    border-color: color-mix(in srgb, var(--accent) 50%, var(--line));
-    color: var(--ink);
-    background: color-mix(in srgb, var(--accent) 12%, var(--panel));
-  }
-
   .pane-tabs {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -673,17 +637,12 @@ body.more-sheet-open {
     font-size: 0.82rem;
   }
 
-  .field textarea,
-  .align-pane {
+  .field textarea {
     min-height: 0;
     height: 100%;
     max-height: none;
     resize: none;
     -webkit-overflow-scrolling: touch;
-  }
-
-  .align-pane {
-    max-height: none;
   }
 
   .cta-row {
@@ -1104,64 +1063,10 @@ body.dict-sidebar-open {
   margin-right: 0.35rem;
 }
 
-.mode-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem 1.25rem;
-  align-items: center;
-}
-
-.check {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  color: var(--ink-soft);
-  font-size: 0.92rem;
-  cursor: pointer;
-  user-select: none;
-}
-
-.check input {
-  accent-color: var(--accent);
-  width: 1rem;
-  height: 1rem;
-}
-
 .pair-grid.is-drop {
   outline: 2px dashed var(--accent);
   outline-offset: 4px;
   border-radius: var(--radius);
-}
-
-.align-pane {
-  min-height: 12rem;
-  max-height: 22rem;
-  overflow: auto;
-  padding: 0.85rem 1rem;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: color-mix(in srgb, var(--panel) 88%, transparent);
-  line-height: 1.55;
-  white-space: pre-wrap;
-}
-
-.align-sent {
-  display: inline;
-  cursor: pointer;
-  border-radius: 0.2rem;
-  padding: 0.05rem 0.12rem;
-  transition: background 0.2s var(--ease);
-}
-
-.align-sent:hover,
-.align-sent:focus-visible {
-  background: color-mix(in srgb, var(--accent) 22%, transparent);
-  outline: none;
-}
-
-.align-sent.is-active {
-  background: color-mix(in srgb, var(--accent) 35%, transparent);
-  color: var(--ink);
 }
 
 .dict-packs {

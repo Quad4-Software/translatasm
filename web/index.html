@@ -90,13 +90,6 @@
         </label>
       </div>
 
-      <div class="mode-row" aria-label="Modes">
-        <label class="check">
-          <input type="checkbox" id="opt-align">
-          <span>Align</span>
-        </label>
-      </div>
-
       <div class="pane-tabs" role="tablist" aria-label="Text panes" hidden>
         <button type="button" class="pane-tab is-active" role="tab" id="tab-source" aria-selected="true" aria-controls="pane-source" data-pane="source">Source</button>
         <button type="button" class="pane-tab" role="tab" id="tab-target" aria-selected="false" aria-controls="pane-target" data-pane="target">Translation</button>
@@ -109,7 +102,6 @@
             <span id="source-count" class="count">0</span>
           </span>
           <textarea id="source" rows="10" placeholder="Type, paste, or drop a .txt / .md / .srt file" spellcheck="true" autofocus enterkeyhint="done"></textarea>
-          <div id="source-align" class="align-pane" hidden></div>
         </label>
         <label class="field grow pane-target" id="pane-target" role="tabpanel" aria-labelledby="tab-target">
           <span class="pane-head">
@@ -117,7 +109,6 @@
             <span id="latency" class="count"></span>
           </span>
           <textarea id="target" rows="10" readonly placeholder="Translation appears here"></textarea>
-          <div id="target-align" class="align-pane" hidden></div>
         </label>
       </div>
 

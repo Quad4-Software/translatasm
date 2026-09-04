@@ -3,13 +3,12 @@ import assert from 'node:assert/strict';
 import { parseUrlState, buildUrlSearch, truncateQ, Q_MAX } from './urlstate.js';
 
 test('parseUrlState reads from to q flags', () => {
-  const s = parseUrlState('?from=de&to=en&q=Hallo&html=1&auto=true&align=1', ['de', 'en', 'es']);
+  const s = parseUrlState('?from=de&to=en&q=Hallo&html=1&auto=true', ['de', 'en', 'es']);
   assert.equal(s.from, 'de');
   assert.equal(s.to, 'en');
   assert.equal(s.q, 'Hallo');
   assert.equal(s.html, true);
   assert.equal(s.auto, true);
-  assert.equal(s.align, true);
 });
 
 test('parseUrlState drops invalid langs', () => {

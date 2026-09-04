@@ -126,11 +126,10 @@ Single shot: `node scripts/screenshot.mjs --only desktop` (after `make screensho
 - Live typing translate with adaptive debounce and request supersede
 - Sentence-level translation memory (only dirty sentences retranslate)
 - Auto language detect (native LanguageDetector, optional cld3, heuristic fallback)
-- Shareable URL (`?from=&to=&q=&html=1&auto=1&align=1`)
-- HTML markup-aware translate toggle
+- Shareable URL (`?from=&to=&q=&html=1&auto=1`)
+- HTML markup-aware translate when source looks like HTML
 - File drop for `.txt` / `.md` / `.srt` with download
 - Term glossary (do-not-translate) and vocab notebook with spaced review
-- Sentence align mode (click to highlight peer sentence)
 - Offline dictionary drawer (Kaikki + FreeDict)
 
 ## Speed notes

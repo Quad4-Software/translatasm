@@ -1,5 +1,5 @@
 /**
- * Shareable translator URL state (?from=&to=&q=&html=1&auto=1&align=1).
+ * Shareable translator URL state (?from=&to=&q=&html=1&auto=1).
  */
 
 export const Q_MAX = 2000;
@@ -11,7 +11,6 @@ export const Q_MAX = 2000;
  *   q?: string,
  *   html?: boolean,
  *   auto?: boolean,
- *   align?: boolean,
  * }} UrlState
  */
 
@@ -53,9 +52,6 @@ export function parseUrlState(search, allowedLangs) {
   if (params.has('auto')) {
     out.auto = truthy(params.get('auto'));
   }
-  if (params.has('align')) {
-    out.align = truthy(params.get('align'));
-  }
   return out;
 }
 
@@ -80,9 +76,6 @@ export function buildUrlSearch(state, opts = {}) {
   }
   if (state.auto) {
     params.set('auto', '1');
-  }
-  if (state.align) {
-    params.set('align', '1');
   }
   const s = params.toString();
   return s ? `?${s}` : '';

@@ -1,7 +1,6 @@
 import { createEngine, registerEngine } from '../engine/registry.js';
 import { createBergamotEngine, hasNativeIntGemm } from '../engine/bergamot.js';
 import { canTranslate, findDirect, languageLabel } from '../engine/pairs.js';
-import { translateAligned, renderAlignHtml } from '../engine/align.js';
 import {
   classifyLiveChange,
   openSentenceDebounceMs,
@@ -51,8 +50,6 @@ export async function bootApp() {
     to: /** @type {HTMLSelectElement} */ (document.getElementById('to')),
     source: /** @type {HTMLTextAreaElement} */ (document.getElementById('source')),
     target: /** @type {HTMLTextAreaElement} */ (document.getElementById('target')),
-    sourceAlign: /** @type {HTMLElement} */ (document.getElementById('source-align')),
-    targetAlign: /** @type {HTMLElement} */ (document.getElementById('target-align')),
     pairGrid: /** @type {HTMLElement} */ (document.getElementById('pair-grid')),
     sourceLabel: document.getElementById('source-label'),
     targetLabel: document.getElementById('target-label'),
@@ -77,7 +74,6 @@ export async function bootApp() {
     paneTabs: /** @type {HTMLElement | null} */ (document.querySelector('.pane-tabs')),
     ctaRow: /** @type {HTMLElement | null} */ (document.getElementById('cta-row')),
     fileInput: /** @type {HTMLInputElement} */ (document.getElementById('file-input')),
-    optAlign: /** @type {HTMLInputElement} */ (document.getElementById('opt-align')),
   };
 
   /** @type {import('../engine/types.js').ModelInfo[]} */
@@ -101,11 +97,8 @@ export async function bootApp() {
   let lastLiveSource = '';
   /** @type {{key: string, entries: unknown[]}} */
   let glossaryCache = { key: '', entries: [] };
-  /** @type {import('../engine/align.js').AlignedSentence[] | null} */
-  let lastSentences = null;
   /** @type {{name: string, kind: string, body: string, translated?: string} | null} */
   let lastFile = null;
-  let alignActive = -1;
 
   const catalog = await fetchCatalog();
   models = catalog.models;
@@ -124,12 +117,6 @@ export async function bootApp() {
   const initialTo = urlState.to || prefs.to || 'es';
   fillLanguageSelect(els.from, languages, initialFrom, true);
   fillLanguageSelect(els.to, languages, initialTo, false);
-
-  if (urlState.align != null) {
-    els.optAlign.checked = urlState.align;
-  } else if (prefs.alignMode != null) {
-    els.optAlign.checked = Boolean(prefs.alignMode);
-  }
 
   if (els.from.value === els.to.value && els.from.value !== AUTO_VALUE) {
     els.to.value = els.from.value === 'en' ? 'es' : 'en';
@@ -204,16 +191,6 @@ export async function bootApp() {
     }
     onPairChanged().catch(showError);
   });
-  els.optAlign.addEventListener('change', () => {
-    if (!els.optAlign.checked) {
-      hideAlignPanes();
-    }
-    savePrefs();
-    syncShareUrl(true);
-    if (ready && els.source.value.trim()) {
-      runTranslate({ quiet: true }).catch(showError);
-    }
-  });
   els.btnTranslate.addEventListener('click', () => {
     runTranslate({ force: true }).catch(showError);
   });
@@ -272,9 +249,6 @@ export async function bootApp() {
     }
   });
 
-  els.sourceAlign.addEventListener('click', onAlignClick);
-  els.targetAlign.addEventListener('click', onAlignClick);
-
   const mobileChrome = setupMobileChrome(els);
 
   const dictRoot = document.getElementById('dict-root');
@@ -309,8 +283,7 @@ export async function bootApp() {
     }
 
     const htmlMode = looksLikeHtml(text);
-    const alignMode = els.optAlign.checked && !htmlMode;
-    if (htmlMode || alignMode) {
+    if (htmlMode) {
       liveTimer = window.setTimeout(() => {
         runTranslate({ quiet: true }).catch(showError);
       }, liveDebounceMs(text.length));
@@ -406,12 +379,9 @@ export async function bootApp() {
     const to = els.to.value;
     const text = els.source.value;
     const htmlMode = looksLikeHtml(text);
-    const alignMode = els.optAlign.checked && !htmlMode;
 
     if (!text.trim()) {
       els.target.value = '';
-      lastSentences = null;
-      hideAlignPanes();
       if (els.latency) {
         els.latency.textContent = '';
       }
@@ -447,107 +417,24 @@ export async function bootApp() {
       }
       const protected_ = protectTerms(text, glossary, { html: htmlMode });
 
-      let outText = '';
-      /** @type {import('../engine/align.js').AlignedSentence[] | null} */
-      let sentences = null;
-
-      if (alignMode) {
-        const aligned = await translateAligned(protected_.text, {
-          from,
-          to,
-          html: false,
-          signal: ac.signal,
-          translateOne: async (sentence) => {
-            if (serial !== requestSerial || ac.signal.aborted) {
-              return '';
-            }
-            const result = await engine.translate(sentence, {
-              from,
-              to,
-              html: false,
-              signal: ac.signal,
-            });
-            return restoreTerms(result.text, protected_.map);
-          },
-          translateBatch: async (batch) => {
-            if (serial !== requestSerial || ac.signal.aborted) {
-              return batch.map(() => '');
-            }
-            const result = await engine.translate(batch.join('\n'), {
-              from,
-              to,
-              html: false,
-              incremental: false,
-              signal: ac.signal,
-            });
-            const parts = result.text.split('\n');
-            if (parts.length === batch.length) {
-              return parts.map((p, i) => restoreTerms(p, protected_.map));
-            }
-            /** @type {string[]} */
-            const outs = [];
-            for (const sentence of batch) {
-              if (serial !== requestSerial || ac.signal.aborted) {
-                outs.push('');
-                continue;
-              }
-              const one = await engine.translate(sentence, {
-                from,
-                to,
-                html: false,
-                incremental: false,
-                signal: ac.signal,
-              });
-              outs.push(restoreTerms(one.text, protected_.map));
-            }
-            return outs;
-          },
-          onPartial: (partial) => {
-            if (serial !== requestSerial) {
-              return;
-            }
-            els.target.value = partial.map((p) => p.target).join(' ');
-            showAlignPanes(
-              partial.map((p) => ({
-                source: restoreTerms(p.source, protected_.map),
-                target: p.target,
-              })),
-            );
-          },
-        });
-        if (serial !== requestSerial) {
-          return;
-        }
-        sentences = aligned.sentences.map((p) => ({
-          source: restoreTerms(p.source, protected_.map),
-          target: p.target,
-        }));
-        outText = sentences.map((s) => s.target).join(' ');
-      } else {
-        const result = await engine.translate(protected_.text, {
-          from,
-          to,
-          html: htmlMode,
-          signal: ac.signal,
-          onPartial: (partial) => {
-            if (serial !== requestSerial) {
-              return;
-            }
-            els.target.value = restoreTerms(partial.text, protected_.map);
-          },
-        });
-        if (serial !== requestSerial) {
-          return;
-        }
-        outText = restoreTerms(result.text, protected_.map);
-        hideAlignPanes();
+      const result = await engine.translate(protected_.text, {
+        from,
+        to,
+        html: htmlMode,
+        signal: ac.signal,
+        onPartial: (partial) => {
+          if (serial !== requestSerial) {
+            return;
+          }
+          els.target.value = restoreTerms(partial.text, protected_.map);
+        },
+      });
+      if (serial !== requestSerial) {
+        return;
       }
+      const outText = restoreTerms(result.text, protected_.map);
 
       els.target.value = outText;
-      lastSentences = sentences;
-      if (sentences) {
-        showAlignPanes(sentences);
-      }
       const ms = Math.round(performance.now() - started);
       if (els.latency) {
         els.latency.textContent = `${ms} ms`;
@@ -586,7 +473,6 @@ export async function bootApp() {
     const body = await readTextFile(file);
     lastFile = { name: file.name, kind: kind || 'txt', body };
     if (kind === 'srt') {
-      els.optAlign.checked = false;
       await translateSrtFile(body, file.name);
       return;
     }
@@ -799,8 +685,6 @@ export async function bootApp() {
     els.target.value = '';
     lastLiveSource = '';
     lastFile = null;
-    lastSentences = null;
-    hideAlignPanes();
     els.btnCopy.disabled = true;
     els.btnClear.disabled = true;
     els.btnDownload.disabled = true;
@@ -811,42 +695,6 @@ export async function bootApp() {
     clearError();
     syncShareUrl(true);
     setStatus('Cleared.');
-  }
-
-  /**
-   * @param {import('../engine/align.js').AlignedSentence[]} sentences
-   */
-  function showAlignPanes(sentences) {
-    els.source.hidden = true;
-    els.target.hidden = true;
-    els.sourceAlign.hidden = false;
-    els.targetAlign.hidden = false;
-    els.sourceAlign.innerHTML = renderAlignHtml(sentences, 'source', alignActive);
-    els.targetAlign.innerHTML = renderAlignHtml(sentences, 'target', alignActive);
-  }
-
-  function hideAlignPanes() {
-    els.source.hidden = false;
-    els.target.hidden = false;
-    els.sourceAlign.hidden = true;
-    els.targetAlign.hidden = true;
-    els.sourceAlign.innerHTML = '';
-    els.targetAlign.innerHTML = '';
-    alignActive = -1;
-  }
-
-  /**
-   * @param {MouseEvent} ev
-   */
-  function onAlignClick(ev) {
-    const t = /** @type {HTMLElement} */ (ev.target);
-    const span = t.closest('[data-align-i]');
-    if (!span || !lastSentences) {
-      return;
-    }
-    const i = Number(span.getAttribute('data-align-i'));
-    alignActive = i;
-    showAlignPanes(lastSentences);
   }
 
   function refreshLabels() {
@@ -909,7 +757,6 @@ export async function bootApp() {
         q: includeQ ? els.source.value : undefined,
         html: htmlMode || undefined,
         auto: auto || undefined,
-        align: els.optAlign.checked || undefined,
       },
       { includeQ, replace: true },
     );
@@ -923,7 +770,6 @@ export async function bootApp() {
           from: els.from.value === AUTO_VALUE ? resolvedFrom : els.from.value,
           to: els.to.value,
           autoDetect: els.from.value === AUTO_VALUE,
-          alignMode: els.optAlign.checked,
         }),
       );
     } catch {
@@ -1239,7 +1085,7 @@ function fillLanguageSelect(select, languages, selected, withAuto) {
 }
 
 /**
- * @returns {{from?: string, to?: string, autoDetect?: boolean, alignMode?: boolean}}
+ * @returns {{from?: string, to?: string, autoDetect?: boolean}}
  */
 function loadPrefs() {
   try {
