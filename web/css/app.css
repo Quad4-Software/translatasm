@@ -178,16 +178,8 @@ body {
   animation: rise 0.9s var(--ease) both;
 }
 
-.brand-row {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 0.85rem;
-}
-
 .brand {
-  margin: 0;
+  margin: 0 0 0.85rem;
   font-family: var(--font-display);
   font-size: clamp(2.5rem, 7vw, 4.4rem);
   font-weight: 700;
@@ -196,8 +188,9 @@ body {
 }
 
 .source-link {
-  position: static;
-  flex: 0 0 auto;
+  position: fixed;
+  top: 1rem;
+  right: 1.15rem;
   z-index: 5;
   color: var(--ink-soft);
   font-family: var(--font-display);
@@ -206,7 +199,6 @@ body {
   letter-spacing: 0.04em;
   text-decoration: none;
   text-transform: uppercase;
-  padding: 0.35rem 0;
 }
 
 .headline {
@@ -497,10 +489,9 @@ body.more-sheet-open {
   }
 
   .source-link {
-    margin: 0;
-    padding: 0.45rem 0.15rem;
+    top: max(0.65rem, env(safe-area-inset-top, 0px));
+    right: max(0.85rem, env(safe-area-inset-right, 0px));
     font-size: 0.72rem;
-    line-height: 1;
   }
 
   .site-foot {
@@ -516,10 +507,6 @@ body.more-sheet-open {
     max-width: none;
     margin-bottom: 0.15rem;
     animation: none;
-  }
-
-  .brand-row {
-    margin-bottom: 0;
   }
 
   .brand {
