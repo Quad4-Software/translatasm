@@ -6,6 +6,7 @@ dist/
 .DS_Store
 .idea/
 .vscode/
+.lighthouseci/
 coverage.out
 coverage.html
 web/vendor/bergamot/
