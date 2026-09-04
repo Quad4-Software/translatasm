@@ -2,10 +2,31 @@
  * Lazy pack/shard fetches. Relies on the service worker cacheFirst for /dicts/.
  */
 
+/** Cap in-memory JSON packs. Service worker still caches on disk. */
+const CACHE_LIMIT = 8;
+
 /** @type {Map<string, Promise<any>>} */
 const inflight = new Map();
 /** @type {Map<string, any>} */
 const cache = new Map();
+
+/**
+ * @param {string} url
+ * @param {any} data
+ */
+function setCached(url, data) {
+  if (cache.has(url)) {
+    cache.delete(url);
+  }
+  cache.set(url, data);
+  while (cache.size > CACHE_LIMIT) {
+    const oldest = cache.keys().next().value;
+    if (oldest === undefined) {
+      break;
+    }
+    cache.delete(oldest);
+  }
+}
 
 /**
  * @param {string} path relative under /dicts/ or absolute /dicts/...
@@ -14,7 +35,10 @@ const cache = new Map();
 export async function fetchDictJSON(path) {
   const url = path.startsWith('/') ? path : `/dicts/${path}`;
   if (cache.has(url)) {
-    return cache.get(url);
+    const hit = cache.get(url);
+    cache.delete(url);
+    cache.set(url, hit);
+    return hit;
   }
   if (inflight.has(url)) {
     return inflight.get(url);
@@ -30,7 +54,7 @@ export async function fetchDictJSON(path) {
       throw new Error(`Dictionary fetch failed (${res.status})`);
     }
     const data = await res.json();
-    cache.set(url, data);
+    setCached(url, data);
     return data;
   })();
   inflight.set(url, pending);
