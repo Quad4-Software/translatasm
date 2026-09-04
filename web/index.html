@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="translatasm translates offline in your browser with Bergamot">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0a0a0b">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="translatasm">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icons/favicon.ico" sizes="any">
+  <link rel="icon" href="/icons/icon-192.png" type="image/png" sizes="192x192">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <title>translatasm</title>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <div class="atmosphere" aria-hidden="true"></div>
+  <main class="stage">
+    <header class="brand-block">
+      <p class="brand">translatasm</p>
+      <h1 class="headline">Fast offline translation.</h1>
+      <p class="lede">27 languages. Marian tiny packs via Bergamot WASM. Runs here. Nothing is uploaded.</p>
+    </header>
+
+    <section class="controls" aria-label="Translator">
+      <div class="lang-row">
+        <label class="field">
+          <span>From</span>
+          <select id="from"></select>
+        </label>
+        <button type="button" id="btn-swap" class="ghost swap" title="Swap languages" aria-label="Swap languages">
+          <span aria-hidden="true">Swap</span>
+        </button>
+        <label class="field">
+          <span>To</span>
+          <select id="to"></select>
+        </label>
+      </div>
+
+      <div class="pair-grid">
+        <label class="field grow">
+          <span class="pane-head">
+            <span id="source-label">Source</span>
+            <span id="source-count" class="count">0</span>
+          </span>
+          <textarea id="source" rows="10" placeholder="Type or paste text" spellcheck="true" autofocus></textarea>
+        </label>
+        <label class="field grow">
+          <span class="pane-head">
+            <span id="target-label">Translation</span>
+            <span id="latency" class="count"></span>
+          </span>
+          <textarea id="target" rows="10" readonly placeholder="Translation appears here"></textarea>
+        </label>
+      </div>
+
+      <div class="cta-row">
+        <button type="button" id="btn-translate" class="cta primary">
+          <svg class="cta-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path fill="currentColor" d="M12.87 15.07l-2.54-2.51.03-.03c1.74-1.94 2.98-4.17 3.64-6.53H17V4h-7V2H8v2H1v1.99h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-1.04zM18.5 10h-2L12 22h2l1.12-3h6.26L22.5 22h2l-4.5-12zm-1.53 7l1.53-4.11L20.03 17h-3.06z"/>
+          </svg>
+          Translate
+        </button>
+        <button type="button" id="btn-copy" class="cta secondary" disabled>Copy</button>
+        <button type="button" id="btn-clear" class="cta secondary" disabled>Clear</button>
+      </div>
+
+      <div class="status-row">
+        <span id="spinner" class="spinner" hidden aria-hidden="true"></span>
+        <p id="status" class="status" role="status">Getting ready...</p>
+        <p id="route" class="route" hidden></p>
+      </div>
+      <div class="progress-track" hidden>
+        <div id="progress" class="progress-bar"></div>
+      </div>
+      <p id="error" class="error" role="alert" hidden></p>
+    </section>
+  </main>
+  <script type="module" src="/js/main.js"></script>
+</body>
+</html>

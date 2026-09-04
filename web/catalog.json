@@ -1,0 +1,792 @@
+{
+  "models": [
+    {
+      "id": "tiny-enes",
+      "label": "English to Spanish",
+      "engine": "bergamot",
+      "path": "/models/tiny/enes",
+      "from": "en",
+      "to": "es",
+      "architecture": "tiny",
+      "size_hint_mb": 17,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "default": true,
+      "notes": "Tiny EN-ES"
+    },
+    {
+      "id": "tiny-esen",
+      "label": "Spanish to English",
+      "engine": "bergamot",
+      "path": "/models/tiny/esen",
+      "from": "es",
+      "to": "en",
+      "architecture": "tiny",
+      "size_hint_mb": 17,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Tiny ES-EN"
+    },
+    {
+      "id": "tiny-enfr",
+      "label": "English to French",
+      "engine": "bergamot",
+      "path": "/models/tiny/enfr",
+      "from": "en",
+      "to": "fr",
+      "architecture": "tiny",
+      "size_hint_mb": 17,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Tiny EN-FR"
+    },
+    {
+      "id": "tiny-fren",
+      "label": "French to English",
+      "engine": "bergamot",
+      "path": "/models/tiny/fren",
+      "from": "fr",
+      "to": "en",
+      "architecture": "tiny",
+      "size_hint_mb": 17,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Tiny FR-EN"
+    },
+    {
+      "id": "tiny-ende",
+      "label": "English to German",
+      "engine": "bergamot",
+      "path": "/models/tiny/ende",
+      "from": "en",
+      "to": "de",
+      "architecture": "tiny",
+      "size_hint_mb": 17,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Tiny EN-DE"
+    },
+    {
+      "id": "tiny-deen",
+      "label": "German to English",
+      "engine": "bergamot",
+      "path": "/models/tiny/deen",
+      "from": "de",
+      "to": "en",
+      "architecture": "tiny",
+      "size_hint_mb": 17,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Tiny DE-EN"
+    },
+    {
+      "id": "tiny-enit",
+      "label": "English to Italian",
+      "engine": "bergamot",
+      "path": "/models/tiny/enit",
+      "from": "en",
+      "to": "it",
+      "architecture": "tiny",
+      "size_hint_mb": 17,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Tiny EN-IT"
+    },
+    {
+      "id": "tiny-iten",
+      "label": "Italian to English",
+      "engine": "bergamot",
+      "path": "/models/tiny/iten",
+      "from": "it",
+      "to": "en",
+      "architecture": "tiny",
+      "size_hint_mb": 17,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Tiny IT-EN"
+    },
+    {
+      "id": "tiny-enpt",
+      "label": "English to Portuguese",
+      "engine": "bergamot",
+      "path": "/models/tiny/enpt",
+      "from": "en",
+      "to": "pt",
+      "architecture": "tiny",
+      "size_hint_mb": 17,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Tiny EN-PT"
+    },
+    {
+      "id": "tiny-pten",
+      "label": "Portuguese to English",
+      "engine": "bergamot",
+      "path": "/models/tiny/pten",
+      "from": "pt",
+      "to": "en",
+      "architecture": "tiny",
+      "size_hint_mb": 17,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Tiny PT-EN"
+    },
+    {
+      "id": "tiny-enru",
+      "label": "English to Russian",
+      "engine": "bergamot",
+      "path": "/models/tiny/enru",
+      "from": "en",
+      "to": "ru",
+      "architecture": "tiny",
+      "size_hint_mb": 17,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Tiny EN-RU"
+    },
+    {
+      "id": "tiny-ruen",
+      "label": "Russian to English",
+      "engine": "bergamot",
+      "path": "/models/tiny/ruen",
+      "from": "ru",
+      "to": "en",
+      "architecture": "tiny",
+      "size_hint_mb": 17,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Tiny RU-EN"
+    },
+    {
+      "id": "tiny-encs",
+      "label": "English to Czech",
+      "engine": "bergamot",
+      "path": "/models/tiny/encs",
+      "from": "en",
+      "to": "cs",
+      "architecture": "tiny",
+      "size_hint_mb": 17,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Tiny EN-CS"
+    },
+    {
+      "id": "tiny-csen",
+      "label": "Czech to English",
+      "engine": "bergamot",
+      "path": "/models/tiny/csen",
+      "from": "cs",
+      "to": "en",
+      "architecture": "tiny",
+      "size_hint_mb": 17,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Tiny CS-EN"
+    },
+    {
+      "id": "tiny-enbg",
+      "label": "English to Bulgarian",
+      "engine": "bergamot",
+      "path": "/models/tiny/enbg",
+      "from": "en",
+      "to": "bg",
+      "architecture": "tiny",
+      "size_hint_mb": 17,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Tiny EN-BG"
+    },
+    {
+      "id": "tiny-bgen",
+      "label": "Bulgarian to English",
+      "engine": "bergamot",
+      "path": "/models/tiny/bgen",
+      "from": "bg",
+      "to": "en",
+      "architecture": "tiny",
+      "size_hint_mb": 17,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Tiny BG-EN"
+    },
+    {
+      "id": "tiny-enet",
+      "label": "English to Estonian",
+      "engine": "bergamot",
+      "path": "/models/tiny/enet",
+      "from": "en",
+      "to": "et",
+      "architecture": "tiny",
+      "size_hint_mb": 17,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Tiny EN-ET"
+    },
+    {
+      "id": "tiny-eten",
+      "label": "Estonian to English",
+      "engine": "bergamot",
+      "path": "/models/tiny/eten",
+      "from": "et",
+      "to": "en",
+      "architecture": "tiny",
+      "size_hint_mb": 17,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Tiny ET-EN"
+    },
+    {
+      "id": "tiny-enuk",
+      "label": "English to Ukrainian",
+      "engine": "bergamot",
+      "path": "/models/tiny/enuk",
+      "from": "en",
+      "to": "uk",
+      "architecture": "tiny",
+      "size_hint_mb": 25,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "UK pack (intgemm8)"
+    },
+    {
+      "id": "tiny-uken",
+      "label": "Ukrainian to English",
+      "engine": "bergamot",
+      "path": "/models/tiny/uken",
+      "from": "uk",
+      "to": "en",
+      "architecture": "tiny",
+      "size_hint_mb": 25,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "UK pack (intgemm8)"
+    },
+    {
+      "id": "tiny-enpl",
+      "label": "English to Polish",
+      "engine": "bergamot",
+      "path": "/models/tiny/enpl",
+      "from": "en",
+      "to": "pl",
+      "architecture": "tiny",
+      "size_hint_mb": 22,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Firefox EN-PL"
+    },
+    {
+      "id": "tiny-plen",
+      "label": "Polish to English",
+      "engine": "bergamot",
+      "path": "/models/tiny/plen",
+      "from": "pl",
+      "to": "en",
+      "architecture": "tiny",
+      "size_hint_mb": 23,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Firefox PL-EN"
+    },
+    {
+      "id": "tiny-ennl",
+      "label": "English to Dutch",
+      "engine": "bergamot",
+      "path": "/models/tiny/ennl",
+      "from": "en",
+      "to": "nl",
+      "architecture": "tiny",
+      "size_hint_mb": 22,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Firefox EN-NL"
+    },
+    {
+      "id": "tiny-nlen",
+      "label": "Dutch to English",
+      "engine": "bergamot",
+      "path": "/models/tiny/nlen",
+      "from": "nl",
+      "to": "en",
+      "architecture": "tiny",
+      "size_hint_mb": 23,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Firefox NL-EN"
+    },
+    {
+      "id": "tiny-ensv",
+      "label": "English to Swedish",
+      "engine": "bergamot",
+      "path": "/models/tiny/ensv",
+      "from": "en",
+      "to": "sv",
+      "architecture": "tiny",
+      "size_hint_mb": 22,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Firefox EN-SV"
+    },
+    {
+      "id": "tiny-sven",
+      "label": "Swedish to English",
+      "engine": "bergamot",
+      "path": "/models/tiny/sven",
+      "from": "sv",
+      "to": "en",
+      "architecture": "tiny",
+      "size_hint_mb": 23,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Firefox SV-EN"
+    },
+    {
+      "id": "tiny-enda",
+      "label": "English to Danish",
+      "engine": "bergamot",
+      "path": "/models/tiny/enda",
+      "from": "en",
+      "to": "da",
+      "architecture": "tiny",
+      "size_hint_mb": 22,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Firefox EN-DA"
+    },
+    {
+      "id": "tiny-daen",
+      "label": "Danish to English",
+      "engine": "bergamot",
+      "path": "/models/tiny/daen",
+      "from": "da",
+      "to": "en",
+      "architecture": "tiny",
+      "size_hint_mb": 22,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Firefox DA-EN"
+    },
+    {
+      "id": "tiny-enfi",
+      "label": "English to Finnish",
+      "engine": "bergamot",
+      "path": "/models/tiny/enfi",
+      "from": "en",
+      "to": "fi",
+      "architecture": "tiny",
+      "size_hint_mb": 21,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Firefox EN-FI"
+    },
+    {
+      "id": "tiny-fien",
+      "label": "Finnish to English",
+      "engine": "bergamot",
+      "path": "/models/tiny/fien",
+      "from": "fi",
+      "to": "en",
+      "architecture": "tiny",
+      "size_hint_mb": 23,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Firefox FI-EN"
+    },
+    {
+      "id": "tiny-enhu",
+      "label": "English to Hungarian",
+      "engine": "bergamot",
+      "path": "/models/tiny/enhu",
+      "from": "en",
+      "to": "hu",
+      "architecture": "tiny",
+      "size_hint_mb": 22,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Firefox EN-HU"
+    },
+    {
+      "id": "tiny-huen",
+      "label": "Hungarian to English",
+      "engine": "bergamot",
+      "path": "/models/tiny/huen",
+      "from": "hu",
+      "to": "en",
+      "architecture": "tiny",
+      "size_hint_mb": 23,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Firefox HU-EN"
+    },
+    {
+      "id": "tiny-enro",
+      "label": "English to Romanian",
+      "engine": "bergamot",
+      "path": "/models/tiny/enro",
+      "from": "en",
+      "to": "ro",
+      "architecture": "tiny",
+      "size_hint_mb": 22,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Firefox EN-RO"
+    },
+    {
+      "id": "tiny-roen",
+      "label": "Romanian to English",
+      "engine": "bergamot",
+      "path": "/models/tiny/roen",
+      "from": "ro",
+      "to": "en",
+      "architecture": "tiny",
+      "size_hint_mb": 23,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Firefox RO-EN"
+    },
+    {
+      "id": "tiny-enel",
+      "label": "English to Greek",
+      "engine": "bergamot",
+      "path": "/models/tiny/enel",
+      "from": "en",
+      "to": "el",
+      "architecture": "tiny",
+      "size_hint_mb": 21,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Firefox EN-EL"
+    },
+    {
+      "id": "tiny-elen",
+      "label": "Greek to English",
+      "engine": "bergamot",
+      "path": "/models/tiny/elen",
+      "from": "el",
+      "to": "en",
+      "architecture": "tiny",
+      "size_hint_mb": 23,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Firefox EL-EN"
+    },
+    {
+      "id": "tiny-entr",
+      "label": "English to Turkish",
+      "engine": "bergamot",
+      "path": "/models/tiny/entr",
+      "from": "en",
+      "to": "tr",
+      "architecture": "tiny",
+      "size_hint_mb": 21,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Firefox EN-TR"
+    },
+    {
+      "id": "tiny-tren",
+      "label": "Turkish to English",
+      "engine": "bergamot",
+      "path": "/models/tiny/tren",
+      "from": "tr",
+      "to": "en",
+      "architecture": "tiny",
+      "size_hint_mb": 23,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Firefox TR-EN"
+    },
+    {
+      "id": "tiny-enca",
+      "label": "English to Catalan",
+      "engine": "bergamot",
+      "path": "/models/tiny/enca",
+      "from": "en",
+      "to": "ca",
+      "architecture": "tiny",
+      "size_hint_mb": 22,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Firefox EN-CA"
+    },
+    {
+      "id": "tiny-caen",
+      "label": "Catalan to English",
+      "engine": "bergamot",
+      "path": "/models/tiny/caen",
+      "from": "ca",
+      "to": "en",
+      "architecture": "tiny",
+      "size_hint_mb": 23,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Firefox CA-EN"
+    },
+    {
+      "id": "tiny-enhr",
+      "label": "English to Croatian",
+      "engine": "bergamot",
+      "path": "/models/tiny/enhr",
+      "from": "en",
+      "to": "hr",
+      "architecture": "tiny",
+      "size_hint_mb": 21,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Firefox EN-HR"
+    },
+    {
+      "id": "tiny-hren",
+      "label": "Croatian to English",
+      "engine": "bergamot",
+      "path": "/models/tiny/hren",
+      "from": "hr",
+      "to": "en",
+      "architecture": "tiny",
+      "size_hint_mb": 22,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Firefox HR-EN"
+    },
+    {
+      "id": "tiny-ensk",
+      "label": "English to Slovak",
+      "engine": "bergamot",
+      "path": "/models/tiny/ensk",
+      "from": "en",
+      "to": "sk",
+      "architecture": "tiny",
+      "size_hint_mb": 21,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Firefox EN-SK"
+    },
+    {
+      "id": "tiny-sken",
+      "label": "Slovak to English",
+      "engine": "bergamot",
+      "path": "/models/tiny/sken",
+      "from": "sk",
+      "to": "en",
+      "architecture": "tiny",
+      "size_hint_mb": 23,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Firefox SK-EN"
+    },
+    {
+      "id": "tiny-ensl",
+      "label": "English to Slovenian",
+      "engine": "bergamot",
+      "path": "/models/tiny/ensl",
+      "from": "en",
+      "to": "sl",
+      "architecture": "tiny",
+      "size_hint_mb": 21,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Firefox EN-SL"
+    },
+    {
+      "id": "tiny-slen",
+      "label": "Slovenian to English",
+      "engine": "bergamot",
+      "path": "/models/tiny/slen",
+      "from": "sl",
+      "to": "en",
+      "architecture": "tiny",
+      "size_hint_mb": 22,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Firefox SL-EN"
+    },
+    {
+      "id": "tiny-enid",
+      "label": "English to Indonesian",
+      "engine": "bergamot",
+      "path": "/models/tiny/enid",
+      "from": "en",
+      "to": "id",
+      "architecture": "tiny",
+      "size_hint_mb": 21,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Firefox EN-ID"
+    },
+    {
+      "id": "tiny-iden",
+      "label": "Indonesian to English",
+      "engine": "bergamot",
+      "path": "/models/tiny/iden",
+      "from": "id",
+      "to": "en",
+      "architecture": "tiny",
+      "size_hint_mb": 22,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Firefox ID-EN"
+    },
+    {
+      "id": "tiny-envi",
+      "label": "English to Vietnamese",
+      "engine": "bergamot",
+      "path": "/models/tiny/envi",
+      "from": "en",
+      "to": "vi",
+      "architecture": "tiny",
+      "size_hint_mb": 22,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Firefox EN-VI"
+    },
+    {
+      "id": "tiny-vien",
+      "label": "Vietnamese to English",
+      "engine": "bergamot",
+      "path": "/models/tiny/vien",
+      "from": "vi",
+      "to": "en",
+      "architecture": "tiny",
+      "size_hint_mb": 22,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Firefox VI-EN"
+    },
+    {
+      "id": "tiny-ennb",
+      "label": "English to Norwegian",
+      "engine": "bergamot",
+      "path": "/models/tiny/ennb",
+      "from": "en",
+      "to": "nb",
+      "architecture": "tiny",
+      "size_hint_mb": 22,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Firefox EN-NB"
+    },
+    {
+      "id": "tiny-nben",
+      "label": "Norwegian to English",
+      "engine": "bergamot",
+      "path": "/models/tiny/nben",
+      "from": "nb",
+      "to": "en",
+      "architecture": "tiny",
+      "size_hint_mb": 15,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "notes": "Firefox NB-EN"
+    }
+  ],
+  "languages": [
+    {
+      "code": "en",
+      "label": "English"
+    },
+    {
+      "code": "bg",
+      "label": "Bulgarian"
+    },
+    {
+      "code": "ca",
+      "label": "Catalan"
+    },
+    {
+      "code": "hr",
+      "label": "Croatian"
+    },
+    {
+      "code": "cs",
+      "label": "Czech"
+    },
+    {
+      "code": "da",
+      "label": "Danish"
+    },
+    {
+      "code": "nl",
+      "label": "Dutch"
+    },
+    {
+      "code": "et",
+      "label": "Estonian"
+    },
+    {
+      "code": "fi",
+      "label": "Finnish"
+    },
+    {
+      "code": "fr",
+      "label": "French"
+    },
+    {
+      "code": "de",
+      "label": "German"
+    },
+    {
+      "code": "el",
+      "label": "Greek"
+    },
+    {
+      "code": "hu",
+      "label": "Hungarian"
+    },
+    {
+      "code": "id",
+      "label": "Indonesian"
+    },
+    {
+      "code": "it",
+      "label": "Italian"
+    },
+    {
+      "code": "nb",
+      "label": "Norwegian"
+    },
+    {
+      "code": "pl",
+      "label": "Polish"
+    },
+    {
+      "code": "pt",
+      "label": "Portuguese"
+    },
+    {
+      "code": "ro",
+      "label": "Romanian"
+    },
+    {
+      "code": "ru",
+      "label": "Russian"
+    },
+    {
+      "code": "sk",
+      "label": "Slovak"
+    },
+    {
+      "code": "sl",
+      "label": "Slovenian"
+    },
+    {
+      "code": "es",
+      "label": "Spanish"
+    },
+    {
+      "code": "sv",
+      "label": "Swedish"
+    },
+    {
+      "code": "tr",
+      "label": "Turkish"
+    },
+    {
+      "code": "uk",
+      "label": "Ukrainian"
+    },
+    {
+      "code": "vi",
+      "label": "Vietnamese"
+    }
+  ],
+  "pivot": "en"
+}
