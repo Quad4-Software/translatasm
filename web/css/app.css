@@ -503,13 +503,7 @@ body {
 .dict-root {
   position: relative;
   z-index: 30;
-}
-
-.dict-backdrop {
-  position: fixed;
-  inset: 0;
-  background: color-mix(in srgb, black 45%, transparent);
-  border: 0;
+  pointer-events: none;
 }
 
 .dict-panel {
@@ -524,15 +518,22 @@ body {
   height: 100%;
   padding: 1rem 1rem 1.25rem;
   border-left: 1px solid var(--line);
-  background: color-mix(in srgb, var(--panel) 94%, black);
-  box-shadow: -16px 0 40px color-mix(in srgb, black 35%, transparent);
+  background: color-mix(in srgb, var(--panel) 96%, black);
+  box-shadow: -8px 0 24px color-mix(in srgb, black 22%, transparent);
   transform: translateX(105%);
   transition: transform 0.35s var(--ease);
   overflow: auto;
+  pointer-events: none;
 }
 
 .dict-root.is-open .dict-panel {
   transform: translateX(0);
+  pointer-events: auto;
+}
+
+body.dict-sidebar-open {
+  padding-right: min(340px, 100%);
+  transition: padding-right 0.35s var(--ease);
 }
 
 .dict-panel-head {
@@ -823,16 +824,23 @@ body {
     border-top: 1px solid var(--line);
     border-radius: 12px 12px 0 0;
     transform: translateY(110%);
-    box-shadow: 0 -16px 40px color-mix(in srgb, black 35%, transparent);
+    box-shadow: 0 -8px 24px color-mix(in srgb, black 22%, transparent);
   }
 
   .dict-root.is-open .dict-panel {
     transform: translateY(0);
   }
+
+  body.dict-sidebar-open {
+    padding-right: 0;
+    padding-bottom: min(72vh, 560px);
+    transition: padding-bottom 0.35s var(--ease);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .dict-panel {
+  .dict-panel,
+  body.dict-sidebar-open {
     transition: none;
   }
 }

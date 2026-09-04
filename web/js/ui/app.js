@@ -2,7 +2,7 @@ import { createEngine, registerEngine } from '../engine/registry.js';
 import { createBergamotEngine, hasNativeIntGemm } from '../engine/bergamot.js';
 import { canTranslate, findDirect, languageLabel } from '../engine/pairs.js';
 import { translateAligned, renderAlignHtml } from '../engine/align.js';
-import { mountDictDrawer, wordAtCaret } from '../dict/drawer.js';
+import { mountDictDrawer } from '../dict/drawer.js';
 import { listGlossary, protectTerms, restoreTerms } from '../dict/glossary.js';
 import { parseUrlState, syncUrlState } from './urlstate.js';
 import { detectLanguage, detectDebounceMs, warmDetector } from '../detect/langdetect.js';
@@ -289,12 +289,11 @@ export async function bootApp() {
     }
   });
 
-  els.sourceAlign.addEventListener('click', (ev) => onAlignClick(ev, 'source'));
-  els.targetAlign.addEventListener('click', (ev) => onAlignClick(ev, 'target'));
+  els.sourceAlign.addEventListener('click', onAlignClick);
+  els.targetAlign.addEventListener('click', onAlignClick);
 
   const dictRoot = document.getElementById('dict-root');
-  const dict =
-    dictRoot &&
+  if (dictRoot) {
     mountDictDrawer({
       root: dictRoot,
       getPair: () => ({ from: effectiveFrom(), to: els.to.value }),
@@ -305,25 +304,7 @@ export async function bootApp() {
         }
       },
     });
-
-  /**
-   * @param {HTMLTextAreaElement} el
-   * @param {'source' | 'target'} pane
-   */
-  function bindWordLookup(el, pane) {
-    el.addEventListener('dblclick', () => {
-      if (!dict) {
-        return;
-      }
-      const word = wordAtCaret(el);
-      if (!word) {
-        return;
-      }
-      dict.lookUp(word, pane).catch(showError);
-    });
   }
-  bindWordLookup(els.source, 'source');
-  bindWordLookup(els.target, 'target');
 
   function scheduleDetectAndTranslate() {
     window.clearTimeout(liveTimer);
@@ -724,9 +705,8 @@ export async function bootApp() {
 
   /**
    * @param {MouseEvent} ev
-   * @param {'source' | 'target'} pane
    */
-  function onAlignClick(ev, pane) {
+  function onAlignClick(ev) {
     const t = /** @type {HTMLElement} */ (ev.target);
     const span = t.closest('[data-align-i]');
     if (!span || !lastSentences) {
@@ -735,14 +715,6 @@ export async function bootApp() {
     const i = Number(span.getAttribute('data-align-i'));
     alignActive = i;
     showAlignPanes(lastSentences);
-    if (dict) {
-      const word = (pane === 'source' ? lastSentences[i].source : lastSentences[i].target)
-        .split(/\s+/)[0]
-        ?.replace(/[^\p{L}\p{N}'’-]/gu, '');
-      if (word) {
-        dict.lookUp(word, pane).catch(showError);
-      }
-    }
   }
 
   function refreshLabels() {

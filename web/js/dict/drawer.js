@@ -1,5 +1,5 @@
 /**
- * Right-side dictionary drawer / mobile sheet.
+ * Right-side dictionary sidebar (non-modal popout).
  */
 
 import { loadDictRegistry } from './registry.js';
@@ -46,7 +46,6 @@ export function mountDictDrawer(opts) {
     document.querySelector('[data-dict-toggle]') || root.querySelector('[data-dict-toggle]')
   );
   const panel = /** @type {HTMLElement} */ (root.querySelector('[data-dict-panel]'));
-  const backdrop = /** @type {HTMLElement | null} */ (root.querySelector('[data-dict-backdrop]'));
   const closeBtn = /** @type {HTMLButtonElement | null} */ (root.querySelector('[data-dict-close]'));
   const form = /** @type {HTMLFormElement} */ (root.querySelector('[data-dict-form]'));
   const input = /** @type {HTMLInputElement} */ (root.querySelector('[data-dict-input]'));
@@ -82,7 +81,6 @@ export function mountDictDrawer(opts) {
     }
   });
   closeBtn?.addEventListener('click', () => setOpen(false));
-  backdrop?.addEventListener('click', () => setOpen(false));
   document.addEventListener('keydown', (ev) => {
     if (ev.key === 'Escape' && open) {
       setOpen(false);
@@ -237,12 +235,10 @@ export function mountDictDrawer(opts) {
   function setOpen(next) {
     open = next;
     root.classList.toggle('is-open', open);
+    document.body.classList.toggle('dict-sidebar-open', open);
     panel.hidden = false;
     panel.setAttribute('aria-hidden', open ? 'false' : 'true');
     toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-    if (backdrop) {
-      backdrop.hidden = !open;
-    }
   }
 
   /**
@@ -257,7 +253,6 @@ export function mountDictDrawer(opts) {
       }
       renderPackSummary(registry);
     }
-    setOpen(true);
     input.value = word;
     setStatus('Looking up…');
     resultEl.innerHTML = '';
@@ -484,25 +479,4 @@ function escapeHtml(s) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
-}
-
-/**
- * Extract the word under the caret / around a click in a textarea.
- * @param {HTMLTextAreaElement} el
- * @returns {string}
- */
-export function wordAtCaret(el) {
-  const value = el.value || '';
-  let start = el.selectionStart ?? 0;
-  let end = el.selectionEnd ?? start;
-  if (start !== end) {
-    return value.slice(start, end).trim();
-  }
-  while (start > 0 && /[\p{L}\p{N}'’-]/u.test(value[start - 1])) {
-    start -= 1;
-  }
-  while (end < value.length && /[\p{L}\p{N}'’-]/u.test(value[end])) {
-    end += 1;
-  }
-  return value.slice(start, end).trim();
 }
