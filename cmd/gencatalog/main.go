@@ -20,7 +20,7 @@ func main() {
 		os.Exit(1)
 	}
 	data = append(data, '\n')
-	if err := os.WriteFile(*out, data, 0o644); err != nil {
+	if err := os.WriteFile(*out, data, 0o600); err != nil {
 		fmt.Fprintf(os.Stderr, "write: %v\n", err)
 		os.Exit(1)
 	}
