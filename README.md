@@ -66,6 +66,8 @@ make bench
 ## Features
 
 - Live typing translate with adaptive debounce and request supersede
+- Sentence-level translation memory (only dirty sentences retranslate)
+- Optional Chrome/Edge Translator fast path when the pair is available
 - Auto language detect (native LanguageDetector, optional cld3, heuristic fallback)
 - Shareable URL (`?from=&to=&q=&html=1&auto=1&align=1`)
 - HTML markup-aware translate toggle
@@ -77,7 +79,11 @@ make bench
 ## Speed notes
 
 - One Bergamot worker stays warm (no reload on language change)
+- Sentence TM reuses prior targets so edits only hit dirty sentences
+- Finished sentences flush immediately; the open sentence uses a short debounce
+- In-flight WASM work is aborted on supersede (AbortSignal)
 - Translation cache (~16k entries) and Firefox native IntGEMM when available
+- Chrome/Edge Translator API used when available; Bergamot otherwise
 - Unused language packs are freed from the WASM heap and JS buffers when the pair changes
 - Paragraph chunking for long text (HTML-safe splits when HTML mode is on)
 - Direct packs when available, otherwise pivot through English

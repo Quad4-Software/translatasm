@@ -39,3 +39,20 @@ test('translateAligned maps sentences', async () => {
   assert.ok(result.sentences.length >= 2);
   assert.ok(result.text.includes('T('));
 });
+
+test('translateAligned batches via translateBatch', async () => {
+  let batches = 0;
+  const result = await translateAligned('One. Two. Three. Four.', {
+    from: 'en',
+    to: 'es',
+    batchSize: 2,
+    translateOne: async (s) => `T(${s.trim()})`,
+    translateBatch: async (batch) => {
+      batches += 1;
+      return batch.map((s) => `B(${s.trim()})`);
+    },
+  });
+  assert.ok(result.sentences.length >= 3);
+  assert.ok(batches >= 2);
+  assert.ok(result.text.includes('B('));
+});

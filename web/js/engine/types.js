@@ -35,6 +35,7 @@
  * @property {string} [to]
  * @property {boolean} [html]
  * @property {boolean} [align]
+ * @property {boolean} [incremental]
  * @property {number} [chunkChars]
  * @property {AbortSignal} [signal]
  * @property {(ev: ProgressEvent) => void} [onProgress]

@@ -1,7 +1,14 @@
 import { createEngine, registerEngine } from '../engine/registry.js';
 import { createBergamotEngine, hasNativeIntGemm } from '../engine/bergamot.js';
+import { createFastPathEngine } from '../engine/fast-path.js';
+import { createChromeTranslatorEngine, hasChromeTranslator } from '../engine/chrome-translator.js';
 import { canTranslate, findDirect, languageLabel } from '../engine/pairs.js';
 import { translateAligned, renderAlignHtml } from '../engine/align.js';
+import {
+  classifyLiveChange,
+  openSentenceDebounceMs,
+  sharedMemory,
+} from '../engine/incremental.js';
 import { mountDictDrawer } from '../dict/drawer.js';
 import { listGlossary, protectTerms, restoreTerms } from '../dict/glossary.js';
 import { parseUrlState, syncUrlState } from './urlstate.js';
@@ -16,10 +23,14 @@ import {
 } from './files.js';
 
 registerEngine('bergamot', createBergamotEngine);
+registerEngine('chrome-translator', createChromeTranslatorEngine);
+registerEngine('fast-path', createFastPathEngine);
 
 const STORAGE_KEY = 'translatasm.prefs.v1';
 const LIVE_DEBOUNCE_MIN_MS = 70;
 const LIVE_DEBOUNCE_MAX_MS = 160;
+const FINISHED_FLUSH_MS = 16;
+const SRT_BATCH = 12;
 const AUTO_VALUE = 'auto';
 
 /**
@@ -75,15 +86,22 @@ export async function bootApp() {
   /** @type {import('../engine/types.js').LanguageInfo[]} */
   let languages = [];
   let pivot = 'en';
-  /** @type {ReturnType<typeof createBergamotEngine> | null} */
+  /** @type {import('../engine/types.js').Engine | null} */
   let engine = null;
   let liveTimer = 0;
+  let finishedTimer = 0;
   let detectTimer = 0;
   /** @type {number} */
   let requestSerial = 0;
+  /** @type {AbortController | null} */
+  let translateAbort = null;
   let ready = false;
   /** @type {string} */
   let resolvedFrom = 'en';
+  /** @type {string} */
+  let lastLiveSource = '';
+  /** @type {{key: string, entries: unknown[]}} */
+  let glossaryCache = { key: '', entries: [] };
   /** @type {import('../engine/align.js').AlignedSentence[] | null} */
   let lastSentences = null;
   /** @type {{name: string, kind: string, body: string, translated?: string} | null} */
@@ -135,8 +153,8 @@ export async function bootApp() {
   updateCounts();
   syncShareUrl(false);
 
-  engine = createEngine('bergamot');
-  setStatus('Starting Bergamot...');
+  engine = createEngine('fast-path');
+  setStatus('Starting translator...');
   setBusy(true);
   try {
     await engine.load(models[0], (p) => {
@@ -146,10 +164,15 @@ export async function bootApp() {
     });
     await warmPair(effectiveFrom(), els.to.value);
     ready = true;
-    const accel = hasNativeIntGemm() ? 'Firefox native IntGEMM' : 'WASM IntGEMM';
+    const accel = hasNativeIntGemm()
+      ? 'Firefox native IntGEMM'
+      : hasChromeTranslator()
+        ? 'WASM IntGEMM + Chrome Translator'
+        : 'WASM IntGEMM';
     setStatus(`Ready (${accel}). Type to translate.`);
     warmDetector().catch(() => {});
     if (els.source.value.trim()) {
+      lastLiveSource = els.source.value;
       await runTranslate({ quiet: true });
     }
   } catch (err) {
@@ -299,6 +322,8 @@ export async function bootApp() {
       getPair: () => ({ from: effectiveFrom(), to: els.to.value }),
       onStatus: (msg) => setStatus(msg),
       onGlossaryChange: () => {
+        glossaryCache = { key: '', entries: [] };
+        sharedMemory.clear();
         if (ready && els.source.value.trim()) {
           runTranslate({ quiet: true }).catch(showError);
         }
@@ -308,6 +333,7 @@ export async function bootApp() {
 
   function scheduleDetectAndTranslate() {
     window.clearTimeout(liveTimer);
+    window.clearTimeout(finishedTimer);
     window.clearTimeout(detectTimer);
     const text = els.source.value;
     if (els.optAuto.checked) {
@@ -316,11 +342,54 @@ export async function bootApp() {
           .then(() => runTranslate({ quiet: true }))
           .catch(showError);
       }, detectDebounceMs(text.length));
+      lastLiveSource = text;
       return;
     }
-    liveTimer = window.setTimeout(() => {
-      runTranslate({ quiet: true }).catch(showError);
-    }, liveDebounceMs(text.length));
+
+    const htmlMode = els.optHtml.checked;
+    const alignMode = els.optAlign.checked && !htmlMode;
+    if (htmlMode || alignMode) {
+      liveTimer = window.setTimeout(() => {
+        runTranslate({ quiet: true }).catch(showError);
+      }, liveDebounceMs(text.length));
+      lastLiveSource = text;
+      return;
+    }
+
+    const from = effectiveFrom();
+    const change = classifyLiveChange(text, lastLiveSource, from);
+    lastLiveSource = text;
+
+    if (change.finishedChanged) {
+      finishedTimer = window.setTimeout(() => {
+        runTranslate({ quiet: true }).catch(showError);
+      }, FINISHED_FLUSH_MS);
+    }
+
+    if (change.openChanged || !change.finishedChanged) {
+      const openLen =
+        change.openIndex >= 0 && change.sources[change.openIndex]
+          ? change.sources[change.openIndex].length
+          : text.length;
+      liveTimer = window.setTimeout(() => {
+        runTranslate({ quiet: true }).catch(showError);
+      }, openSentenceDebounceMs(openLen));
+    }
+  }
+
+  /**
+   * @param {string} from
+   * @param {string} to
+   * @returns {Promise<unknown[]>}
+   */
+  async function getGlossary(from, to) {
+    const key = `${from}|${to}`;
+    if (glossaryCache.key === key) {
+      return glossaryCache.entries;
+    }
+    const entries = await listGlossary(from, to).catch(() => []);
+    glossaryCache = { key, entries };
+    return entries;
   }
 
   /**
@@ -394,18 +463,26 @@ export async function bootApp() {
       throw new Error(`No path from ${from} to ${to}.`);
     }
 
+    if (translateAbort) {
+      translateAbort.abort();
+    }
+    const ac = new AbortController();
+    translateAbort = ac;
     const serial = ++requestSerial;
     const started = performance.now();
     if (!mode.quiet) {
       setBusy(true);
       setProgress(0.25);
       setStatus('Translating...');
-    } else if (els.spinner) {
-      els.spinner.hidden = false;
     }
 
     try {
-      const glossary = await listGlossary(from, to).catch(() => []);
+      const glossary = /** @type {import('../dict/glossary.js').GlossaryEntry[]} */ (
+        await getGlossary(from, to)
+      );
+      if (ac.signal.aborted || serial !== requestSerial) {
+        return;
+      }
       const protected_ = protectTerms(text, glossary, { html: htmlMode });
 
       let outText = '';
@@ -417,12 +494,51 @@ export async function bootApp() {
           from,
           to,
           html: false,
+          signal: ac.signal,
           translateOne: async (sentence) => {
-            if (serial !== requestSerial) {
+            if (serial !== requestSerial || ac.signal.aborted) {
               return '';
             }
-            const result = await engine.translate(sentence, { from, to, html: false });
+            const result = await engine.translate(sentence, {
+              from,
+              to,
+              html: false,
+              signal: ac.signal,
+            });
             return restoreTerms(result.text, protected_.map);
+          },
+          translateBatch: async (batch) => {
+            if (serial !== requestSerial || ac.signal.aborted) {
+              return batch.map(() => '');
+            }
+            const result = await engine.translate(batch.join('\n'), {
+              from,
+              to,
+              html: false,
+              incremental: false,
+              signal: ac.signal,
+            });
+            const parts = result.text.split('\n');
+            if (parts.length === batch.length) {
+              return parts.map((p, i) => restoreTerms(p, protected_.map));
+            }
+            /** @type {string[]} */
+            const outs = [];
+            for (const sentence of batch) {
+              if (serial !== requestSerial || ac.signal.aborted) {
+                outs.push('');
+                continue;
+              }
+              const one = await engine.translate(sentence, {
+                from,
+                to,
+                html: false,
+                incremental: false,
+                signal: ac.signal,
+              });
+              outs.push(restoreTerms(one.text, protected_.map));
+            }
+            return outs;
           },
           onPartial: (partial) => {
             if (serial !== requestSerial) {
@@ -450,6 +566,7 @@ export async function bootApp() {
           from,
           to,
           html: htmlMode,
+          signal: ac.signal,
           onPartial: (partial) => {
             if (serial !== requestSerial) {
               return;
@@ -481,7 +598,7 @@ export async function bootApp() {
         setStatus('Done.');
       }
     } catch (err) {
-      if (isSuperseded(err) || serial !== requestSerial) {
+      if (isSuperseded(err) || serial !== requestSerial || ac.signal.aborted) {
         return;
       }
       throw err;
@@ -536,18 +653,64 @@ export async function bootApp() {
     setStatus(`Translating ${cues.length} cues…`);
     const from = effectiveFrom();
     const to = els.to.value;
+    if (translateAbort) {
+      translateAbort.abort();
+    }
+    const ac = new AbortController();
+    translateAbort = ac;
     const serial = ++requestSerial;
-    const glossary = await listGlossary(from, to).catch(() => []);
+    const glossary = /** @type {import('../dict/glossary.js').GlossaryEntry[]} */ (
+      await getGlossary(from, to)
+    );
     /** @type {string[]} */
     const outs = [];
-    for (let i = 0; i < cues.length; i += 1) {
-      if (serial !== requestSerial) {
+    for (let i = 0; i < cues.length; i += SRT_BATCH) {
+      if (serial !== requestSerial || ac.signal.aborted) {
         return;
       }
-      setProgress((i + 1) / cues.length);
-      const protected_ = protectTerms(cues[i].text, glossary, { html: false });
-      const result = await engine.translate(protected_.text, { from, to, html: false });
-      outs.push(restoreTerms(result.text, protected_.map));
+      const batch = cues.slice(i, i + SRT_BATCH);
+      setProgress(Math.min(1, (i + batch.length) / cues.length));
+      /** @type {string[]} */
+      const protectedBatch = [];
+      /** @type {string[][]} */
+      const maps = [];
+      for (const cue of batch) {
+        const protected_ = protectTerms(cue.text, glossary, { html: false });
+        protectedBatch.push(protected_.text);
+        maps.push(protected_.map);
+      }
+      if (!engine) {
+        return;
+      }
+      const joined = await engine.translate(protectedBatch.join('\n'), {
+        from,
+        to,
+        html: false,
+        incremental: false,
+        signal: ac.signal,
+      });
+      let parts = joined.text.split('\n');
+      if (parts.length !== batch.length) {
+        parts = [];
+        for (let j = 0; j < batch.length; j += 1) {
+          if (serial !== requestSerial || ac.signal.aborted) {
+            return;
+          }
+          const one = await engine.translate(protectedBatch[j], {
+            from,
+            to,
+            html: false,
+            incremental: false,
+            signal: ac.signal,
+          });
+          parts.push(restoreTerms(one.text, maps[j]));
+        }
+      } else {
+        for (let j = 0; j < parts.length; j += 1) {
+          parts[j] = restoreTerms(parts[j], maps[j]);
+        }
+      }
+      outs.push(...parts);
     }
     if (serial !== requestSerial) {
       return;
@@ -588,12 +751,16 @@ export async function bootApp() {
     updateRoute();
     savePrefs();
     syncShareUrl(true);
+    glossaryCache = { key: '', entries: [] };
+    sharedMemory.clear();
+    lastLiveSource = '';
     setStatus('Loading language pack...');
     setBusy(true);
     try {
       await warmPair(effectiveFrom(), els.to.value);
       setStatus('Ready.');
       if (els.source.value.trim()) {
+        lastLiveSource = els.source.value;
         await runTranslate({ quiet: true });
       }
     } finally {
@@ -662,10 +829,16 @@ export async function bootApp() {
 
   function clearAll() {
     requestSerial += 1;
+    if (translateAbort) {
+      translateAbort.abort();
+      translateAbort = null;
+    }
     window.clearTimeout(liveTimer);
+    window.clearTimeout(finishedTimer);
     window.clearTimeout(detectTimer);
     els.source.value = '';
     els.target.value = '';
+    lastLiveSource = '';
     lastFile = null;
     lastSentences = null;
     hideAlignPanes();
@@ -938,5 +1111,5 @@ function isSuperseded(err) {
     return false;
   }
   const name = 'name' in err ? String(err.name) : '';
-  return name === 'SupersededError' || name === 'CancelledError';
+  return name === 'SupersededError' || name === 'CancelledError' || name === 'AbortError';
 }

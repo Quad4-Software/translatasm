@@ -1,5 +1,5 @@
 /* translatasm service worker: offline shell + auto-update */
-const CACHE_VERSION = 'translatasm-v0.5.1';
+const CACHE_VERSION = 'translatasm-v0.5.2';
 const SHELL_CACHE = `${CACHE_VERSION}-shell`;
 const ASSET_CACHE = `${CACHE_VERSION}-assets`;
 
@@ -18,6 +18,9 @@ const PRECACHE = [
   '/js/engine/types.js',
   '/js/engine/bergamot.js',
   '/js/engine/bergamot-firefox.js',
+  '/js/engine/incremental.js',
+  '/js/engine/chrome-translator.js',
+  '/js/engine/fast-path.js',
   '/js/engine/pairs.js',
   '/js/engine/align.js',
   '/js/engine/segment.js',
