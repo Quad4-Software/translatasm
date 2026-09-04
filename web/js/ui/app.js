@@ -18,6 +18,7 @@ import {
   readTextFile,
   serializeSrt,
 } from './files.js';
+import { getShellVersion, setPWABusy } from '../pwa.js';
 
 registerEngine('bergamot', createBergamotEngine);
 
@@ -815,6 +816,7 @@ export async function bootApp() {
    * @param {boolean} on
    */
   function setBusy(on) {
+    setPWABusy(on);
     els.btnTranslate.disabled = on;
     els.btnSwap.disabled = on;
     els.from.disabled = on;
@@ -1010,18 +1012,27 @@ async function loadAppVersion() {
   }
   try {
     const res = await fetch('/api/version');
-    if (!res.ok) {
+    if (res.ok) {
+      const data = await res.json();
+      const ver = data && typeof data.version === 'string' ? data.version.trim() : '';
+      if (ver) {
+        el.textContent = `v${ver}`;
+        el.hidden = false;
+        return;
+      }
+    }
+  } catch {
+    /* try shell version below */
+  }
+  try {
+    const shell = await getShellVersion();
+    if (!shell || shell === 'dev') {
       return;
     }
-    const data = await res.json();
-    const ver = data && typeof data.version === 'string' ? data.version.trim() : '';
-    if (!ver) {
-      return;
-    }
-    el.textContent = `v${ver}`;
+    el.textContent = `v${shell}`;
     el.hidden = false;
   } catch {
-    // Static hosts without the API omit the label.
+    /* Static hosts without a SW version omit the label. */
   }
 }
 
