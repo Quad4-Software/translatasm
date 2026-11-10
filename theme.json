@@ -1,0 +1,11 @@
+{
+  "name": "translatasm",
+  "repo": "Quad4-Software/translatasm",
+  "live": "https://translatasm.quad4.io",
+  "image": "ghcr.io/quad4-software/translatasm",
+  "license": "0BSD",
+  "tagline": "in-browser Bergamot",
+  "labelColor": "0a0a0b",
+  "color": "8ad0c6",
+  "style": "flat-square"
+}
