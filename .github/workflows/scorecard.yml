@@ -20,7 +20,12 @@ on:
       - master
   workflow_dispatch:
 
-permissions: read-all
+permissions:
+  contents: read
+
+concurrency:
+  group: scorecard-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   analysis:
@@ -28,10 +33,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
-      security-events: write
-      id-token: write
+      security-events: write  # upload the SARIF report to code scanning
+      id-token: write         # authenticate scorecard API calls
       contents: read
-      actions: read
+      actions: read           # read workflow run metadata for checks
 
     steps:
       - name: Harden runner

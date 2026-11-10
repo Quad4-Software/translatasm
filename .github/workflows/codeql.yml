@@ -35,8 +35,8 @@ jobs:
     timeout-minutes: 45
     permissions:
       contents: read
-      security-events: write
-      actions: read
+      security-events: write  # upload SARIF results to code scanning
+      actions: read           # read workflow run metadata for analysis
     strategy:
       fail-fast: false
       matrix:

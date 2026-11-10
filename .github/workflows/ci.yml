@@ -72,11 +72,12 @@ jobs:
         shell: bash
         env:
           APP: translatasm
+          RUNNER_OS: ${{ runner.os }}
         run: |
           set -euo pipefail
           mkdir -p bin
           EXT=""
-          if [[ "${{ runner.os }}" == "Windows" ]]; then
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
             EXT=".exe"
           fi
           go build -trimpath -ldflags "-s -w" -o "bin/${APP}${EXT}" "./cmd/${APP}"
@@ -85,10 +86,11 @@ jobs:
         shell: bash
         env:
           APP: translatasm
+          RUNNER_OS: ${{ runner.os }}
         run: |
           set -euo pipefail
           EXT=""
-          if [[ "${{ runner.os }}" == "Windows" ]]; then
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
             EXT=".exe"
           fi
           BIN="./bin/${APP}${EXT}"
