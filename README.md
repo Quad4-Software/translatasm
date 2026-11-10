@@ -78,7 +78,7 @@ The binary serves a `web/` tree. For a full offline tree, clone and run `make as
 
 ## Build from source
 
-Needs Go 1.26+, `curl`, `gunzip`, and Python 3.
+Needs Go 1.27+, `curl`, `gunzip`, and Python 3.
 
 ```bash
 git clone https://github.com/Quad4-Software/translatasm.git
