@@ -35,21 +35,25 @@ download "$NPM/worker/translator-worker.js" "$BERG_WORKER/translator-worker.js"
 download "$NPM/worker/bergamot-translator-worker.js" "$BERG_WORKER/bergamot-translator-worker.js"
 download "$NPM/worker/bergamot-translator-worker.wasm" "$BERG_WORKER/bergamot-translator-worker.wasm"
 
-# Display: Latin only. Body: IBM Plex Sans with Cyrillic + Greek coverage.
-download "https://cdn.jsdelivr.net/fontsource/fonts/bricolage-grotesque@5.2.8/latin-700-normal.woff2" \
-  "$FONT_DIR/bricolage-700.woff2"
-download "https://cdn.jsdelivr.net/fontsource/fonts/ibm-plex-sans@5.2.5/latin-400-normal.woff2" \
+# Single family: IBM Plex Sans for display and body, with Cyrillic + Greek coverage.
+download "https://cdn.jsdelivr.net/fontsource/fonts/ibm-plex-sans@5.3.0/latin-400-normal.woff2" \
   "$FONT_DIR/plex-latin-400.woff2"
-download "https://cdn.jsdelivr.net/fontsource/fonts/ibm-plex-sans@5.2.5/latin-600-normal.woff2" \
+download "https://cdn.jsdelivr.net/fontsource/fonts/ibm-plex-sans@5.3.0/latin-600-normal.woff2" \
   "$FONT_DIR/plex-latin-600.woff2"
-download "https://cdn.jsdelivr.net/fontsource/fonts/ibm-plex-sans@5.2.5/cyrillic-400-normal.woff2" \
+download "https://cdn.jsdelivr.net/fontsource/fonts/ibm-plex-sans@5.3.0/latin-700-normal.woff2" \
+  "$FONT_DIR/plex-latin-700.woff2"
+download "https://cdn.jsdelivr.net/fontsource/fonts/ibm-plex-sans@5.3.0/cyrillic-400-normal.woff2" \
   "$FONT_DIR/plex-cyrillic-400.woff2"
-download "https://cdn.jsdelivr.net/fontsource/fonts/ibm-plex-sans@5.2.5/cyrillic-600-normal.woff2" \
+download "https://cdn.jsdelivr.net/fontsource/fonts/ibm-plex-sans@5.3.0/cyrillic-600-normal.woff2" \
   "$FONT_DIR/plex-cyrillic-600.woff2"
-download "https://cdn.jsdelivr.net/fontsource/fonts/ibm-plex-sans@5.2.5/greek-400-normal.woff2" \
+download "https://cdn.jsdelivr.net/fontsource/fonts/ibm-plex-sans@5.3.0/cyrillic-700-normal.woff2" \
+  "$FONT_DIR/plex-cyrillic-700.woff2"
+download "https://cdn.jsdelivr.net/fontsource/fonts/ibm-plex-sans@5.3.0/greek-400-normal.woff2" \
   "$FONT_DIR/plex-greek-400.woff2"
-download "https://cdn.jsdelivr.net/fontsource/fonts/ibm-plex-sans@5.2.5/greek-600-normal.woff2" \
+download "https://cdn.jsdelivr.net/fontsource/fonts/ibm-plex-sans@5.3.0/greek-600-normal.woff2" \
   "$FONT_DIR/plex-greek-600.woff2"
+download "https://cdn.jsdelivr.net/fontsource/fonts/ibm-plex-sans@5.3.0/greek-700-normal.woff2" \
+  "$FONT_DIR/plex-greek-700.woff2"
 
 INDEX_GZ="$MODEL_DIR/tmp/index.json.gz"
 INDEX_JSON="$MODEL_DIR/tmp/index.json"
