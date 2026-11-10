@@ -4,7 +4,7 @@
 #   actions/upload-pages-artifact@v5.0.0    fc324d3547104276b827a68afc52ff2a11cc49c9
 #   actions/deploy-pages@v5.0.1             368f82528645a54fb793d4d04e342629a3f51346
 #   actions/setup-go@v7.0.0                 b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
-#   actions/setup-node@v7.0.0               820762786026740c76f36085b0efc47a31fe5020
+#   actions/setup-node@v7.1.0               949feb2413d6458794dcd2491c4babbbce0c15c1
 #
 # Secure use: least privilege, SHA-pinned actions, no pull_request_target.
 # https://docs.github.com/en/actions/reference/security/secure-use
@@ -34,7 +34,7 @@ jobs:
       pages: write
     steps:
       - name: Harden runner
-        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
         with:
           egress-policy: audit
       - name: Checkout
@@ -57,9 +57,9 @@ jobs:
         run: go run ./cmd/gencatalog -o web/catalog.json
 
       - name: Setup Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: "22"
+          node-version: "26"
 
       - name: Stamp service worker shell version
         run: |
@@ -92,7 +92,7 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Harden runner
-        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
         with:
           egress-policy: audit
       - name: Deploy to GitHub Pages

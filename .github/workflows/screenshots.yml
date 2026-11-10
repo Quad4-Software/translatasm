@@ -1,7 +1,7 @@
 # Pinned actions (bump tag and SHA together when upgrading):
 #   actions/checkout@v7.0.1                 3d3c42e5aac5ba805825da76410c181273ba90b1
-#   actions/setup-node@v7.0.0               820762786026740c76f36085b0efc47a31fe5020
-#   actions/upload-artifact@v7.0.1          043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+#   actions/setup-node@v7.1.0               949feb2413d6458794dcd2491c4babbbce0c15c1
+#   actions/upload-artifact@v7.0.2          cf430e030ddbb5b0abf93d22962f4752f3646cd9
 #
 # Secure use: least-privilege GITHUB_TOKEN, pin actions to full commit SHAs,
 # pull_request (not pull_request_target), no untrusted checkout with secrets.
@@ -35,7 +35,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Harden runner
-        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
         with:
           egress-policy: audit
       - name: Checkout
@@ -44,9 +44,9 @@ jobs:
           persist-credentials: false
 
       - name: Setup Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: "22"
+          node-version: "26"
 
       - name: Capture screenshots
         env:
@@ -57,7 +57,7 @@ jobs:
         run: make screenshots
 
       - name: Upload screenshots
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: screenshots
           path: docs/screenshots/*.png

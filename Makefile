@@ -33,7 +33,7 @@ GOVULNCHECK   ?= govulncheck
 STATICCHECK   ?= staticcheck
 GOIMPORTS     ?= goimports
 NODE          ?= node
-PLAYWRIGHT_PKG ?= playwright@1.62.1
+PLAYWRIGHT_PKG ?= playwright@1.65.0
 PLAYWRIGHT_INSTALL_ARGS ?=
 TOOLS_DIR     := .tools
 
