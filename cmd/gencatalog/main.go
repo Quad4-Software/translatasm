@@ -31,10 +31,11 @@ func main() {
 		os.Exit(1)
 	}
 	data = append(data, '\n')
-	if err := os.MkdirAll(filepath.Dir(*out), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(*out), 0o750); err != nil {
 		fmt.Fprintf(os.Stderr, "mkdir: %v\n", err)
 		os.Exit(1)
 	}
+	// #nosec G703 -- the -o flag is the tool's purpose: write the catalog wherever the caller asks.
 	if err := os.WriteFile(*out, data, 0o600); err != nil {
 		fmt.Fprintf(os.Stderr, "write: %v\n", err)
 		os.Exit(1)
