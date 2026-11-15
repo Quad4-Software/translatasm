@@ -6,14 +6,378 @@
     "Bilingual glosses: FreeDict"
   ],
   "mono": {
+    "ru": {
+      "lang": "ru",
+      "path": "mono/ru/meta.json",
+      "entries": 1327062,
+      "size_hint_mb": 165.72,
+      "shards": [
+        {
+          "id": "_",
+          "path": "mono/ru/_.json",
+          "entries": 20553,
+          "bytes": 1496749
+        },
+        {
+          "id": "a",
+          "path": "mono/ru/a.json",
+          "entries": 13145,
+          "bytes": 916485
+        },
+        {
+          "id": "b",
+          "path": "mono/ru/b.json",
+          "entries": 14704,
+          "bytes": 954398
+        },
+        {
+          "id": "c",
+          "path": "mono/ru/c.json",
+          "entries": 1980,
+          "bytes": 126510
+        },
+        {
+          "id": "cyr",
+          "path": "mono/ru/cyr.json",
+          "entries": 907522,
+          "bytes": 145187680
+        },
+        {
+          "id": "d",
+          "path": "mono/ru/d.json",
+          "entries": 15203,
+          "bytes": 1019257
+        },
+        {
+          "id": "e",
+          "path": "mono/ru/e.json",
+          "entries": 2962,
+          "bytes": 214688
+        },
+        {
+          "id": "el",
+          "path": "mono/ru/el.json",
+          "entries": 30,
+          "bytes": 4071
+        },
+        {
+          "id": "f",
+          "path": "mono/ru/f.json",
+          "entries": 4931,
+          "bytes": 323616
+        },
+        {
+          "id": "g",
+          "path": "mono/ru/g.json",
+          "entries": 10968,
+          "bytes": 709415
+        },
+        {
+          "id": "h",
+          "path": "mono/ru/h.json",
+          "entries": 9,
+          "bytes": 636
+        },
+        {
+          "id": "i",
+          "path": "mono/ru/i.json",
+          "entries": 11075,
+          "bytes": 784718
+        },
+        {
+          "id": "j",
+          "path": "mono/ru/j.json",
+          "entries": 3194,
+          "bytes": 193793
+        },
+        {
+          "id": "k",
+          "path": "mono/ru/k.json",
+          "entries": 23146,
+          "bytes": 1513922
+        },
+        {
+          "id": "l",
+          "path": "mono/ru/l.json",
+          "entries": 7868,
+          "bytes": 482803
+        },
+        {
+          "id": "m",
+          "path": "mono/ru/m.json",
+          "entries": 14029,
+          "bytes": 913748
+        },
+        {
+          "id": "n",
+          "path": "mono/ru/n.json",
+          "entries": 19611,
+          "bytes": 1358671
+        },
+        {
+          "id": "o",
+          "path": "mono/ru/o.json",
+          "entries": 34017,
+          "bytes": 2349104
+        },
+        {
+          "id": "p",
+          "path": "mono/ru/p.json",
+          "entries": 75615,
+          "bytes": 5354614
+        },
+        {
+          "id": "q",
+          "path": "mono/ru/q.json",
+          "entries": 6,
+          "bytes": 539
+        },
+        {
+          "id": "r",
+          "path": "mono/ru/r.json",
+          "entries": 23070,
+          "bytes": 1629190
+        },
+        {
+          "id": "s",
+          "path": "mono/ru/s.json",
+          "entries": 38063,
+          "bytes": 2525199
+        },
+        {
+          "id": "t",
+          "path": "mono/ru/t.json",
+          "entries": 12323,
+          "bytes": 791301
+        },
+        {
+          "id": "u",
+          "path": "mono/ru/u.json",
+          "entries": 14807,
+          "bytes": 990951
+        },
+        {
+          "id": "v",
+          "path": "mono/ru/v.json",
+          "entries": 31200,
+          "bytes": 2114593
+        },
+        {
+          "id": "w",
+          "path": "mono/ru/w.json",
+          "entries": 1,
+          "bytes": 88
+        },
+        {
+          "id": "x",
+          "path": "mono/ru/x.json",
+          "entries": 4318,
+          "bytes": 266221
+        },
+        {
+          "id": "y",
+          "path": "mono/ru/y.json",
+          "entries": 16,
+          "bytes": 833
+        },
+        {
+          "id": "z",
+          "path": "mono/ru/z.json",
+          "entries": 22696,
+          "bytes": 1550258
+        }
+      ],
+      "attribution": "Wiktionary via Kaikki.org / Wiktextract (CC BY-SA)"
+    },
+    "uk": {
+      "lang": "uk",
+      "path": "mono/uk/meta.json",
+      "entries": 203446,
+      "size_hint_mb": 24.37,
+      "shards": [
+        {
+          "id": "_",
+          "path": "mono/uk/_.json",
+          "entries": 4689,
+          "bytes": 401382
+        },
+        {
+          "id": "a",
+          "path": "mono/uk/a.json",
+          "entries": 1447,
+          "bytes": 98275
+        },
+        {
+          "id": "b",
+          "path": "mono/uk/b.json",
+          "entries": 2469,
+          "bytes": 157701
+        },
+        {
+          "id": "c",
+          "path": "mono/uk/c.json",
+          "entries": 421,
+          "bytes": 24891
+        },
+        {
+          "id": "cyr",
+          "path": "mono/uk/cyr.json",
+          "entries": 149763,
+          "bytes": 21974633
+        },
+        {
+          "id": "d",
+          "path": "mono/uk/d.json",
+          "entries": 2467,
+          "bytes": 157072
+        },
+        {
+          "id": "e",
+          "path": "mono/uk/e.json",
+          "entries": 483,
+          "bytes": 33979
+        },
+        {
+          "id": "f",
+          "path": "mono/uk/f.json",
+          "entries": 750,
+          "bytes": 47973
+        },
+        {
+          "id": "g",
+          "path": "mono/uk/g.json",
+          "entries": 102,
+          "bytes": 6170
+        },
+        {
+          "id": "h",
+          "path": "mono/uk/h.json",
+          "entries": 1726,
+          "bytes": 106725
+        },
+        {
+          "id": "i",
+          "path": "mono/uk/i.json",
+          "entries": 726,
+          "bytes": 50166
+        },
+        {
+          "id": "j",
+          "path": "mono/uk/j.json",
+          "entries": 676,
+          "bytes": 38830
+        },
+        {
+          "id": "k",
+          "path": "mono/uk/k.json",
+          "entries": 3323,
+          "bytes": 206432
+        },
+        {
+          "id": "l",
+          "path": "mono/uk/l.json",
+          "entries": 1015,
+          "bytes": 59565
+        },
+        {
+          "id": "m",
+          "path": "mono/uk/m.json",
+          "entries": 2248,
+          "bytes": 140270
+        },
+        {
+          "id": "n",
+          "path": "mono/uk/n.json",
+          "entries": 2949,
+          "bytes": 201096
+        },
+        {
+          "id": "o",
+          "path": "mono/uk/o.json",
+          "entries": 1726,
+          "bytes": 111935
+        },
+        {
+          "id": "p",
+          "path": "mono/uk/p.json",
+          "entries": 7492,
+          "bytes": 505509
+        },
+        {
+          "id": "q",
+          "path": "mono/uk/q.json",
+          "entries": 6,
+          "bytes": 521
+        },
+        {
+          "id": "r",
+          "path": "mono/uk/r.json",
+          "entries": 2512,
+          "bytes": 165713
+        },
+        {
+          "id": "s",
+          "path": "mono/uk/s.json",
+          "entries": 4440,
+          "bytes": 283520
+        },
+        {
+          "id": "t",
+          "path": "mono/uk/t.json",
+          "entries": 1814,
+          "bytes": 113649
+        },
+        {
+          "id": "u",
+          "path": "mono/uk/u.json",
+          "entries": 847,
+          "bytes": 54565
+        },
+        {
+          "id": "v",
+          "path": "mono/uk/v.json",
+          "entries": 4956,
+          "bytes": 323527
+        },
+        {
+          "id": "x",
+          "path": "mono/uk/x.json",
+          "entries": 584,
+          "bytes": 34641
+        },
+        {
+          "id": "y",
+          "path": "mono/uk/y.json",
+          "entries": 7,
+          "bytes": 352
+        },
+        {
+          "id": "z",
+          "path": "mono/uk/z.json",
+          "entries": 3808,
+          "bytes": 251424
+        }
+      ],
+      "attribution": "Wiktionary via Kaikki.org / Wiktextract (CC BY-SA)"
+    },
     "en": {
       "lang": "en",
       "path": "mono/en/meta.json",
       "entries": 5,
       "size_hint_mb": 0.01,
       "shards": [
-        {"id": "h", "path": "mono/en/h.json", "entries": 3, "bytes": 500},
-        {"id": "r", "path": "mono/en/r.json", "entries": 4, "bytes": 500}
+        {
+          "id": "h",
+          "path": "mono/en/h.json",
+          "entries": 3,
+          "bytes": 500
+        },
+        {
+          "id": "r",
+          "path": "mono/en/r.json",
+          "entries": 4,
+          "bytes": 500
+        }
       ],
       "attribution": "Wiktionary via Kaikki.org / Wiktextract (CC BY-SA)"
     },
@@ -23,19 +387,42 @@
       "entries": 5,
       "size_hint_mb": 0.01,
       "shards": [
-        {"id": "c", "path": "mono/es/c.json", "entries": 5, "bytes": 900}
+        {
+          "id": "c",
+          "path": "mono/es/c.json",
+          "entries": 5,
+          "bytes": 900
+        }
       ],
       "attribution": "Wiktionary via Kaikki.org / Wiktextract (CC BY-SA)"
     }
   },
   "bi": {
+    "enru": {
+      "id": "enru",
+      "from": "en",
+      "to": "ru",
+      "path": "bi/enru.json",
+      "entries": 41620,
+      "size_hint_mb": 6.61,
+      "attribution": "FreeDict"
+    },
+    "ruen": {
+      "id": "ruen",
+      "from": "ru",
+      "to": "en",
+      "path": "bi/ruen.json",
+      "entries": 42206,
+      "size_hint_mb": 3.65,
+      "attribution": "FreeDict"
+    },
     "enes": {
       "id": "enes",
       "from": "en",
       "to": "es",
       "path": "bi/enes.json",
       "entries": 3,
-      "size_hint_mb": 0.01,
+      "size_hint_mb": 0.0,
       "attribution": "FreeDict"
     },
     "esen": {
@@ -44,7 +431,7 @@
       "to": "en",
       "path": "bi/esen.json",
       "entries": 3,
-      "size_hint_mb": 0.01,
+      "size_hint_mb": 0.0,
       "attribution": "FreeDict"
     }
   }

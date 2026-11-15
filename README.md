@@ -4,7 +4,7 @@
 
 Offline neural machine translation in the browser via Bergamot (Marian NMT) WASM.
 
-**29 languages** (includes Chinese and Japanese when CJK packs are fetched), 56 direct packs with English pivot for cross pairs. Text stays on device after models load.
+**60 languages**, 112 direct packs with English pivot for cross pairs. Packs come from Mozilla Remote Settings (the same builds Firefox Translations ships), with Bergamot S3 tiny packs as fallback. Text stays on device after models load.
 
 **Live:** [https://translatasm.quad4.io](https://translatasm.quad4.io)
 
@@ -12,9 +12,9 @@ Offline neural machine translation in the browser via Bergamot (Marian NMT) WASM
 
 ## Languages
 
-English, Bulgarian, Catalan, Chinese, Croatian, Czech, Danish, Dutch, Estonian, Finnish, French, German, Greek, Hungarian, Indonesian, Italian, Japanese, Norwegian, Polish, Portuguese, Romanian, Russian, Slovak, Slovenian, Spanish, Swedish, Turkish, Ukrainian, Vietnamese.
+Afrikaans, Albanian, Arabic, Azerbaijani, Basque, Belarusian, Bengali, Bosnian, Bulgarian, Catalan, Chinese, Chinese (Traditional), Croatian, Czech, Danish, Dutch, English, Estonian, Finnish, French, Galician, German, Greek, Gujarati, Hebrew, Hindi, Hungarian, Icelandic, Indonesian, Italian, Japanese, Kannada, Korean, Latvian, Lithuanian, Malay, Malayalam, Maltese, Marathi, Norwegian Bokmål, Norwegian Nynorsk, Persian, Polish, Portuguese, Romanian, Russian, Serbian, Slovak, Slovenian, Spanish, Swedish, Tagalog, Tamil, Telugu, Thai, Turkish, Ukrainian, Urdu, Uyghur, Vietnamese.
 
-Chinese and Japanese packs need Firefox Translations WASM 2.x with CJK segmentation. Default build ships Bergamot 0.4.9. Enable with:
+Outbound English to Chinese, Japanese, and Korean needs Firefox Translations WASM 2.x. Those packs are gated behind `TRANSLATASM_CJK=1` and the inbound X to English CJK packs work on the stock Bergamot 0.4.9 WASM:
 
 ```bash
 TRANSLATASM_CJK=1 make assets
@@ -24,7 +24,7 @@ That fetches 2.x language packs and Firefox Remote Settings WASM into `web/vendo
 
 ## Install (Docker)
 
-Clone and build (downloads Bergamot WASM + language packs into the image, ~1.2 GB):
+Clone and build (downloads Firefox Remote Settings packs + WASM + fonts into the image, ~3 GB):
 
 ```bash
 git clone https://github.com/Quad4-Software/translatasm.git
@@ -83,20 +83,20 @@ Needs Go 1.27+, `curl`, `gunzip`, and Python 3.
 ```bash
 git clone https://github.com/Quad4-Software/translatasm.git
 cd translatasm
-make assets   # WASM + Bergamot tiny packs + Firefox extras (~1.1 GB)
+make assets   # WASM + Firefox Remote Settings packs + fonts (~3 GB)
 make run
 ```
 
-Bergamot S3 only (no Firefox extras):
+Bergamot S3 tiny packs only (no Firefox Remote Settings):
 
 ```bash
-TRANSLATASM_EXTRAS=0 make assets
+TRANSLATASM_S3_ONLY=1 make assets
 ```
 
 Subset of packs:
 
 ```bash
-TRANSLATASM_PAIRS="enes esen enfr fren" TRANSLATASM_EXTRAS=0 make assets
+TRANSLATASM_PAIRS="enes esen enfr fren" make assets
 ```
 
 ```bash

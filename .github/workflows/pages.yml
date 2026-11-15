@@ -60,7 +60,7 @@ jobs:
 
       - name: Fetch offline assets (Bergamot S3, no extras)
         env:
-          TRANSLATASM_EXTRAS: "0"
+          TRANSLATASM_S3_ONLY: "1"
         run: make assets
 
       - name: Setup Node

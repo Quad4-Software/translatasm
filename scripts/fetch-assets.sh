@@ -1,5 +1,18 @@
 #!/usr/bin/env bash
 # Fetch Bergamot WASM + Marian packs + readable fonts into web/.
+#
+# Model sources, best first:
+#   1. Mozilla Remote Settings "translations-models" (same packs Firefox
+#      Translations ships). Newest complete version wins, so pairs get the
+#      current 2.x packs instead of the old S3 "tiny" builds.
+#   2. Bergamot S3 tiny packs, kept as a fallback for pairs Remote Settings
+#      does not cover.
+#
+# Env:
+#   TRANSLATASM_PAIRS   space-separated pair codes, or "all" (default)
+#   TRANSLATASM_CJK=1   also fetch en->zh/ja/ko packs (need Bergamot WASM 2.x;
+#                       X->en CJK packs work on the stock 0.4.9 WASM)
+#   TRANSLATASM_S3_ONLY=1  skip Remote Settings, S3 tiny packs only
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -12,9 +25,9 @@ INDEX_URL="https://bergamot.s3.amazonaws.com/models/index.json"
 FF_RECORDS_URL="https://firefox.settings.services.mozilla.com/v1/buckets/main/collections/translations-models/records?_limit=5000"
 FF_ATTACH_BASE="https://firefox-settings-attachments.cdn.mozilla.net/"
 
-# all = Bergamot S3 tiny set + curated Firefox extras
 PAIRS="${TRANSLATASM_PAIRS:-all}"
-EXTRAS="${TRANSLATASM_EXTRAS:-1}"
+CJK="${TRANSLATASM_CJK:-0}"
+S3_ONLY="${TRANSLATASM_S3_ONLY:-0}"
 
 mkdir -p "$BERG_WORKER" "$MODEL_DIR" "$FONT_DIR" "$MODEL_DIR/tmp"
 
@@ -66,39 +79,64 @@ else
 fi
 
 FF_JSON="$MODEL_DIR/tmp/firefox-records.json"
-if [[ "$EXTRAS" != "0" ]]; then
+if [[ "$S3_ONLY" != "1" ]]; then
   echo "fetching Firefox Translations model index"
   curl -L --fail --retry 5 --retry-delay 2 -o "$FF_JSON" "$FF_RECORDS_URL"
 else
   echo '{"data":[]}' >"$FF_JSON"
 fi
 
-python3 - "$INDEX_JSON" "$FF_JSON" "$MODEL_DIR" "$PAIRS" "$EXTRAS" "$FF_ATTACH_BASE" <<'PY'
-import gzip, http.client, json, os, sys, time, urllib.error, urllib.request
+python3 - "$INDEX_JSON" "$FF_JSON" "$MODEL_DIR" "$PAIRS" "$CJK" "$S3_ONLY" "$FF_ATTACH_BASE" <<'PY'
+import gzip, http.client, json, os, re, sys, time, urllib.error, urllib.request
 
-index_path, ff_path, model_dir, pairs_arg, extras_arg, attach_base = sys.argv[1:7]
+index_path, ff_path, model_dir, pairs_arg, cjk_arg, s3_only, attach_base = sys.argv[1:8]
 with open(index_path, encoding="utf-8") as f:
     index = json.load(f)
 with open(ff_path, encoding="utf-8") as f:
     ff_records = json.load(f).get("data") or []
 
 if pairs_arg.strip() == "all":
-    pairs = sorted(index.keys())
+    pair_filter = None
 else:
-    pairs = pairs_arg.split()
+    pair_filter = set(pairs_arg.split())
 
-# Curated Firefox extras (v1-friendly). Skips CJK and huge 2.x packs unless TRANSLATASM_CJK=1.
-EXTRA_LANGS = {
-    "pl", "nl", "sv", "da", "fi", "hu", "ro", "el", "tr",
-    "ca", "hr", "sk", "sl", "id", "vi", "nb",
-}
-CJK_LANGS = {"zh", "ja"}
-cjk_arg = os.environ.get("TRANSLATASM_CJK", "0")
-if cjk_arg == "1":
-    EXTRA_LANGS = set(EXTRA_LANGS) | CJK_LANGS
+cjk_enabled = cjk_arg == "1"
+
+# Targets that need the Firefox/WASM 2.x runtime (en->CJK produces garbage or
+# fails on the stock 0.4.9 build). X->en CJK packs work fine on 0.4.9.
+WASM2X_TARGETS = {"zh", "ja", "ko", "zh-hant"}
 
 
-registry = {}
+def norm_code(tag):
+    """Remote Settings lang tag -> catalog code."""
+    t = (tag or "").strip().lower()
+    if t == "zh-hans":
+        return "zh"
+    if t == "zh-hant":
+        return "zh-hant"
+    return t
+
+
+def version_key(v):
+    """Sortable key: higher base version wins; stable beats alpha of same base."""
+    m = re.match(r"^(\d+)(?:\.(\d+))?(?:\.(\d+))?(.*)$", str(v))
+    if not m:
+        return (0, 0, 0, 0)
+    major = int(m.group(1))
+    minor = int(m.group(2) or 0)
+    patch = int(m.group(3) or 0)
+    suffix = m.group(4) or ""
+    stable = 0 if re.search(r"[ab]|alpha|beta|rc", suffix, re.I) else 1
+    return (major, minor, patch, stable)
+
+
+def complete_filetypes(fts):
+    return (
+        "model" in fts
+        and "lex" in fts
+        and ("vocab" in fts or ("srcvocab" in fts and "trgvocab" in fts))
+    )
+
 
 def gunzip_if_needed(path: str) -> None:
     with open(path, "rb") as f:
@@ -110,6 +148,7 @@ def gunzip_if_needed(path: str) -> None:
     with open(path, "wb") as f:
         f.write(data)
     print(f"gunzipped: {path}")
+
 
 def fetch(url: str, dest: str, attempts: int = 5) -> None:
     os.makedirs(os.path.dirname(dest), exist_ok=True)
@@ -138,7 +177,8 @@ def fetch(url: str, dest: str, attempts: int = 5) -> None:
             time.sleep(wait)
     raise RuntimeError(f"failed to fetch {url}: {last_err!r}")
 
-def default_config(model_name: str, remote=None) -> dict:
+
+def default_config(model_name: str) -> dict:
     cfg = {
         "beam-size": "1",
         "normalize": "1.0",
@@ -156,31 +196,119 @@ def default_config(model_name: str, remote=None) -> dict:
     }
     if model_name.endswith("intgemm8.bin"):
         cfg["gemm-precision"] = "int8shiftAll"
-    if isinstance(remote, dict):
-        for k, v in remote.items():
-            if v is not None:
-                cfg[k] = v
     return cfg
 
-def add_pair(pair: str, from_code: str, to_code: str, files_out: dict) -> None:
-    files_out["from"] = from_code
-    files_out["to"] = to_code
-    registry[pair] = files_out
 
-# Bergamot S3 tiny packs
-for pair in pairs:
+registry = {}
+
+PART_FILETYPES = {
+    "model": "model",
+    "lex": "lex",
+    "vocab": "vocab",
+    "srcvocab": "srcvocab",
+    "trgvocab": "trgvocab",
+}
+
+
+def wanted(fl: str, tl: str) -> bool:
+    """Whether a pair should be fetched under current env flags."""
+    if pair_filter is not None and fl + tl not in pair_filter:
+        return False
+    if tl in WASM2X_TARGETS and not cjk_enabled:
+        return False
+    return True
+
+
+# --- Firefox Remote Settings packs (preferred) ---
+if s3_only != "1":
+    grouped = {}
+    for r in ff_records:
+        fl = norm_code(r.get("fromLang"))
+        tl = norm_code(r.get("toLang"))
+        if not fl or not tl or fl == "en" and tl == "en":
+            continue
+        # All Remote Settings packs pivot through English.
+        if fl != "en" and tl != "en":
+            continue
+        grouped.setdefault((fl, tl), {}).setdefault(str(r.get("version") or ""), []).append(r)
+
+    for (fl, tl), versions in sorted(grouped.items()):
+        pair = fl + tl
+        if pair in registry:
+            continue
+        if not wanted(fl, tl):
+            continue
+        # Pick the newest version with a complete file set.
+        best_ver, best_files = None, None
+        for ver in sorted(versions, key=version_key, reverse=True):
+            by_type = {}
+            for r in versions[ver]:
+                ft = r.get("fileType")
+                if ft not in PART_FILETYPES:
+                    continue
+                # Keep the most recently modified record per file type.
+                prev = by_type.get(ft)
+                if prev is None or (r.get("last_modified") or 0) >= (prev.get("last_modified") or 0):
+                    by_type[ft] = r
+            if complete_filetypes(by_type):
+                best_ver, best_files = ver, by_type
+                break
+        if not best_files:
+            print(f"skip {pair}: no complete firefox pack")
+            continue
+
+        dest_dir = os.path.join(model_dir, "hq", pair)
+        os.makedirs(dest_dir, exist_ok=True)
+        files_out = {"from": fl, "to": tl}
+        model_remote_name = ""
+        for ft, part in PART_FILETYPES.items():
+            if ft not in best_files:
+                continue
+            meta = best_files[ft]
+            att = meta.get("attachment") or {}
+            loc = att.get("location")
+            if not loc:
+                raise SystemExit(f"missing attachment for {pair} {ft}")
+            remote_name = att.get("filename") or meta.get("name") or f"{part}.{pair}.bin"
+            if ft == "model":
+                model_remote_name = remote_name
+            dest = os.path.join(dest_dir, remote_name)
+            fetch(attach_base + loc, dest)
+            files_out[part] = {
+                "name": f"/models/hq/{pair}/{remote_name}",
+                "size": os.path.getsize(dest),
+                "expectedSha256Hash": "",
+            }
+        files_out["config"] = default_config(model_remote_name)
+        registry[pair] = files_out
+        print(f"firefox {pair} v{best_ver} ({fl}->{tl})")
+
+# --- Bergamot S3 tiny packs (fallback / S3-only mode) ---
+s3_pairs = sorted(index.keys()) if pairs_arg.strip() == "all" else pairs_arg.split()
+for pair in s3_pairs:
+    fl, tl = norm_code(pair[:2]), norm_code(pair[2:4])
+    if tl in WASM2X_TARGETS and not cjk_enabled:
+        continue
+    key = fl + tl
+    if key in registry:
+        continue
+    if pair_filter is not None and key not in pair_filter:
+        continue
     if pair not in index:
-        raise SystemExit(f"pair {pair} not in Bergamot index")
+        if s3_only == "1":
+            raise SystemExit(f"pair {pair} not in Bergamot index")
+        continue
     entry = index[pair]
-    from_code, to_code = pair[:2], pair[2:4]
     dest_dir = os.path.join(model_dir, "tiny", pair)
     os.makedirs(dest_dir, exist_ok=True)
-    files_out = {}
+    files_out = {"from": fl, "to": tl}
 
     model_meta = entry.get("model")
     if not model_meta or not model_meta.get("name"):
-        raise SystemExit(f"missing model for {pair}")
-    model_local = f"model.{pair}.bin"
+        if s3_only == "1":
+            raise SystemExit(f"missing model for {pair}")
+        continue
+    model_local = model_meta["name"].rsplit("/", 1)[-1]
     model_dest = os.path.join(dest_dir, model_local)
     fetch(model_meta["name"], model_dest)
     files_out["model"] = {
@@ -191,8 +319,10 @@ for pair in pairs:
 
     lex_meta = entry.get("lex")
     if not lex_meta or not lex_meta.get("name"):
-        raise SystemExit(f"missing lex for {pair}")
-    lex_local = f"lex.{pair}.s2t.bin"
+        if s3_only == "1":
+            raise SystemExit(f"missing lex for {pair}")
+        continue
+    lex_local = lex_meta["name"].rsplit("/", 1)[-1]
     lex_dest = os.path.join(dest_dir, lex_local)
     fetch(lex_meta["name"], lex_dest)
     files_out["lex"] = {
@@ -202,7 +332,7 @@ for pair in pairs:
     }
 
     if entry.get("vocab") and entry["vocab"].get("name"):
-        vocab_local = f"vocab.{pair}.spm"
+        vocab_local = entry["vocab"]["name"].rsplit("/", 1)[-1]
         vocab_dest = os.path.join(dest_dir, vocab_local)
         fetch(entry["vocab"]["name"], vocab_dest)
         files_out["vocab"] = {
@@ -211,13 +341,13 @@ for pair in pairs:
             "expectedSha256Hash": "",
         }
     else:
-        for part, local_name in (
-            ("srcvocab", f"srcvocab.{pair}.spm"),
-            ("trgvocab", f"trgvocab.{pair}.spm"),
-        ):
-            meta = entry.get(part)
+        ok = True
+        for part, meta_key in (("srcvocab", "srcvocab"), ("trgvocab", "trgvocab")):
+            meta = entry.get(meta_key)
             if not meta or not meta.get("name"):
-                raise SystemExit(f"missing {part} for {pair}")
+                ok = False
+                break
+            local_name = meta["name"].rsplit("/", 1)[-1]
             dest = os.path.join(dest_dir, local_name)
             fetch(meta["name"], dest)
             files_out[part] = {
@@ -225,118 +355,15 @@ for pair in pairs:
                 "size": os.path.getsize(dest),
                 "expectedSha256Hash": "",
             }
-
-    model_name = (model_meta.get("name") or "").rsplit("/", 1)[-1]
-    files_out["config"] = default_config(model_name, entry.get("config"))
-    add_pair(pair, from_code, to_code, files_out)
-
-def pick_firefox_files(records, prefer_cjk=False):
-    by_ver = {}
-    for r in records:
-        by_ver.setdefault(r.get("version") or "", []).append(r)
-
-    def score(v):
-        if prefer_cjk:
-            if v.startswith("2."):
-                return (0, v)
-            if v.startswith("1.0"):
-                return (2, v)
-            if v.startswith("1."):
-                return (3, v)
-            return (1, v)
-        if v.startswith("1.0"):
-            return (0, v)
-        if v.startswith("1."):
-            return (1, v)
-        if v.startswith("2.0"):
-            return (2, v)
-        return (3, v)
-
-    for ver in sorted(by_ver, key=score):
-        files = {r["fileType"]: r for r in by_ver[ver] if r.get("fileType")}
-        has_vocab = "vocab" in files or ("srcvocab" in files and "trgvocab" in files)
-        if "model" in files and "lex" in files and has_vocab:
-            return ver, files
-    return None, None
-
-if extras_arg != "0":
-    grouped = {}
-    for r in ff_records:
-        fl = r.get("fromLang")
-        tl = r.get("toLang")
-        if not fl or not tl:
+        if not ok:
+            if s3_only == "1":
+                raise SystemExit(f"missing vocab for {pair}")
             continue
-        if fl != "en" and tl != "en":
-            continue
-        other = tl if fl == "en" else fl
-        if other not in EXTRA_LANGS:
-            continue
-        # Skip multi-part tags that break 2+2 registry keys.
-        if "-" in fl or "-" in tl:
-            continue
-        grouped.setdefault((fl, tl), []).append(r)
 
-    for (fl, tl), recs in sorted(grouped.items()):
-        pair = fl + tl
-        if pair in registry:
-            continue
-        prefer_cjk = (fl in CJK_LANGS) or (tl in CJK_LANGS)
-        ver, files = pick_firefox_files(recs, prefer_cjk=prefer_cjk)
-        if not files:
-            print(f"skip {pair}: incomplete firefox records")
-            continue
-        if prefer_cjk and not str(ver).startswith("2"):
-            print(f"warn {pair}: no 2.x pack found (got v{ver}); needs Bergamot WASM 2.x")
-        dest_dir = os.path.join(model_dir, "tiny", pair)
-        os.makedirs(dest_dir, exist_ok=True)
-        files_out = {}
-        model_name = files["model"].get("name") or f"model.{pair}.bin"
-
-        for part, local_name in (
-            ("model", f"model.{pair}.bin"),
-            ("lex", f"lex.{pair}.s2t.bin"),
-        ):
-            meta = files[part]
-            att = meta.get("attachment") or {}
-            loc = att.get("location")
-            if not loc:
-                raise SystemExit(f"missing attachment for {pair} {part}")
-            dest = os.path.join(dest_dir, local_name)
-            fetch(attach_base + loc, dest)
-            files_out[part] = {
-                "name": f"/models/tiny/{pair}/{local_name}",
-                "size": os.path.getsize(dest),
-                "expectedSha256Hash": "",
-            }
-
-        if "vocab" in files:
-            meta = files["vocab"]
-            att = meta.get("attachment") or {}
-            dest = os.path.join(dest_dir, f"vocab.{pair}.spm")
-            fetch(attach_base + att["location"], dest)
-            files_out["vocab"] = {
-                "name": f"/models/tiny/{pair}/vocab.{pair}.spm",
-                "size": os.path.getsize(dest),
-                "expectedSha256Hash": "",
-            }
-        else:
-            for part, local_name in (
-                ("srcvocab", f"srcvocab.{pair}.spm"),
-                ("trgvocab", f"trgvocab.{pair}.spm"),
-            ):
-                meta = files[part]
-                att = meta.get("attachment") or {}
-                dest = os.path.join(dest_dir, local_name)
-                fetch(attach_base + att["location"], dest)
-                files_out[part] = {
-                    "name": f"/models/tiny/{pair}/{local_name}",
-                    "size": os.path.getsize(dest),
-                    "expectedSha256Hash": "",
-                }
-
-        files_out["config"] = default_config(model_name)
-        add_pair(pair, fl, tl, files_out)
-        print(f"firefox {pair} v{ver}")
+    model_name = model_meta["name"].rsplit("/", 1)[-1]
+    files_out["config"] = default_config(model_name)
+    registry[key] = files_out
+    print(f"s3 {pair} ({fl}->{tl})")
 
 out = os.path.join(model_dir, "registry.json")
 with open(out, "w", encoding="utf-8") as f:
@@ -346,4 +373,4 @@ print(f"wrote {out} ({len(registry)} pairs)")
 PY
 
 echo "offline assets ready"
-echo "pairs: $PAIRS extras: $EXTRAS"
+echo "pairs: $PAIRS cjk: $CJK s3_only: $S3_ONLY"

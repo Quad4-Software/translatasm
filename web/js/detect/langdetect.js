@@ -7,12 +7,22 @@
 const ALIASES = new Map([
   ['no', 'nb'],
   ['nb-no', 'nb'],
-  ['nn', 'nb'],
+  ['nn', 'nn'],
+  ['nn-no', 'nn'],
   ['iw', 'he'],
+  ['in', 'id'],
+  ['fil', 'tl'],
+  ['mo', 'ro'],
+  ['sh', 'sr'],
+  ['sr-latn', 'sr'],
+  ['sr-cyrl', 'sr'],
   ['zh-cn', 'zh'],
-  ['zh-tw', 'zh'],
+  ['zh-sg', 'zh'],
   ['zh-hans', 'zh'],
-  ['zh-hant', 'zh'],
+  ['zh-tw', 'zh-hant'],
+  ['zh-hk', 'zh-hant'],
+  ['zh-mo', 'zh-hant'],
+  ['zh-hant', 'zh-hant'],
   ['pt-br', 'pt'],
   ['pt-pt', 'pt'],
   ['en-us', 'en'],
@@ -288,9 +298,58 @@ const MARKERS = {
   id: ['dan', 'yang', 'di', 'dengan', 'untuk', 'tidak', 'ini', 'dari', 'pada', 'adalah'],
   ca: ['de', 'la', 'i', 'que', 'el', 'els', 'les', 'un', 'una', 'per'],
   et: ['ja', 'on', 'ei', 'et', 'see', 'kui', 'ka', 'ning', 'või', 'aga'],
-  zh: [],
-  ja: [],
+  af: ['die', 'en', 'van', 'is', 'het', 'op', 'te', 'met', 'vir', 'wat'],
+  az: ['və', 'bu', 'üçün', 'ilə', 'də', 'ki', 'mən', 'necə', 'hansı', 'amma'],
+  be: ['што', 'гэта', 'яны', 'яе', 'ужо', 'толькі', 'калі', 'таму', 'але', 'ці'],
+  bs: ['i', 'je', 'se', 'na', 'za', 'da', 'su', 'koji', 'ne', 'od'],
+  eu: ['eta', 'da', 'du', 'bat', 'ez', 'baina', 'ere', 'nire', 'zure', 'guzti'],
+  gl: ['unha', 'é', 'son', 'están', 'tamén', 'moi', 'coa', 'súa', 'seu', 'non'],
+  is: ['og', 'er', 'að', 'sem', 'á', 'til', 'í', 'en', 'það', 'ekki'],
+  lt: ['ir', 'yra', 'kad', 'ne', 'su', 'tai', 'kaip', 'bet', 'labai', 'tik'],
+  lv: ['un', 'ir', 'kas', 'ar', 'ne', 'uz', 'lai', 'tā', 'šis', 'tas'],
+  ms: ['ialah', 'itu', 'bagi', 'sudah', 'akan', 'dengan', 'tidak', 'ini', 'dari', 'pada'],
+  mt: ['u', 'li', 'ta', 'min', 'ma', 'għal', 'fost', 'fil', 'ħlief', 'jew'],
+  nn: ['og', 'er', 'det', 'en', 'på', 'til', 'av', 'for', 'med', 'ikkje'],
+  sq: ['dhe', 'të', 'një', 'është', 'me', 'në', 'për', 'nga', 'që', 'edhe'],
+  sr: ['i', 'je', 'se', 'na', 'za', 'da', 'su', 'koji', 'ne', 'od'],
+  tl: ['ang', 'ng', 'sa', 'mga', 'ay', 'ko', 'si', 'ni', 'po', 'ka'],
+  ar: ['في', 'من', 'على', 'إلى', 'عن', 'مع', 'هذا', 'هذه', 'ذلك', 'التي'],
+  fa: ['را', 'است', 'برای', 'می', 'شود', 'خواهد', 'این', 'آن', 'با', 'از'],
+  ur: ['اور', 'کا', 'کی', 'میں', 'سے', 'ہے', 'کو', 'پر', 'ایک', 'یہ'],
+  ug: ['بىر', 'بۇ', 'شۇ', 'ئۇ', 'ئى', 'دەپ', 'قىلماق', 'بىلەن', 'ياكى', 'ئۆز'],
+  he: ['הוא', 'היא', 'של', 'על', 'עם', 'זה', 'זו', 'לא', 'גם', 'או'],
+  hi: ['और', 'का', 'की', 'में', 'से', 'है', 'को', 'पर', 'एक', 'यह'],
+  mr: ['आणि', 'आहे', 'मधील', 'पासून', 'ही', 'ला', 'हा', 'यासाठी', 'यावर', 'तो'],
+  th: ['และ', 'ของ', 'ใน', 'ที่', 'เป็น', 'ไม่', 'นี้', 'นั้น', 'มี', 'ได้'],
 };
+
+/** Catalog languages grouped by dominant script for heuristic fallback. */
+const SCRIPT_LANGS = {
+  cyrillic: ['ru', 'uk', 'bg', 'sr', 'be'],
+  greek: ['el'],
+  arabic: ['ar', 'fa', 'ur', 'ug'],
+  hebrew: ['he'],
+  devanagari: ['hi', 'mr'],
+  unique: {
+    bengali: 'bn',
+    gujarati: 'gu',
+    tamil: 'ta',
+    telugu: 'te',
+    kannada: 'kn',
+    malayalam: 'ml',
+    thai: 'th',
+    hangul: 'ko',
+    kana: 'ja',
+    han: 'zh',
+  },
+};
+
+/** Latin-script catalog languages for the marker fallback. */
+const LATIN_LANGS = [
+  'en', 'es', 'fr', 'de', 'it', 'pt', 'nl', 'pl', 'sv', 'da', 'nb', 'nn',
+  'fi', 'hu', 'ro', 'tr', 'ca', 'hr', 'sk', 'sl', 'id', 'ms', 'vi', 'et',
+  'af', 'az', 'bs', 'eu', 'gl', 'is', 'lt', 'lv', 'mt', 'sq', 'sr', 'tl',
+];
 
 /**
  * Compact offline detector using script + stopword scoring.
@@ -300,59 +359,81 @@ const MARKERS = {
 export function heuristicDetect(text) {
   const sample = text.slice(0, 2000);
   const script = dominantScript(sample);
-  if (script === 'cjk') {
-    const jaHits = (sample.match(/[\u3040-\u30ff]/g) || []).length;
-    if (jaHits > 2) {
-      return { language: 'ja', confidence: 0.85, backend: 'heuristic' };
-    }
-    return { language: 'zh', confidence: 0.8, backend: 'heuristic' };
+  const unique = SCRIPT_LANGS.unique[script];
+  if (unique) {
+    return { language: unique, confidence: 0.85, backend: 'heuristic' };
   }
-  if (script === 'cyrillic') {
-    return scoreMarkers(sample, ['ru', 'uk', 'bg'], 0.75);
+  if (script === 'cyrillic' || script === 'greek' || script === 'arabic' ||
+      script === 'hebrew' || script === 'devanagari') {
+    return scoreMarkers(sample, SCRIPT_LANGS[script], 0.7) ||
+      { language: SCRIPT_LANGS[script][0], confidence: 0.6, backend: 'heuristic' };
   }
-  if (script === 'greek') {
-    return { language: 'el', confidence: 0.9, backend: 'heuristic' };
-  }
-
-  const latinLangs = Object.keys(MARKERS).filter((c) => !['ru', 'uk', 'bg', 'el', 'zh', 'ja'].includes(c));
-  return scoreMarkers(sample, latinLangs, 0.55);
+  return scoreMarkers(sample, LATIN_LANGS, 0.55);
 }
+
+/** Unicode range -> script name, checked in order. */
+const SCRIPT_RANGES = [
+  ['cyrillic', 0x0400, 0x04ff],
+  ['cyrillic', 0x0500, 0x052f],
+  ['greek', 0x0370, 0x03ff],
+  ['greek', 0x1f00, 0x1fff],
+  ['arabic', 0x0600, 0x06ff],
+  ['arabic', 0x0750, 0x077f],
+  ['arabic', 0x08a0, 0x08ff],
+  ['arabic', 0xfb50, 0xfdff],
+  ['arabic', 0xfe70, 0xfeff],
+  ['hebrew', 0x0590, 0x05ff],
+  ['devanagari', 0x0900, 0x097f],
+  ['bengali', 0x0980, 0x09ff],
+  ['gujarati', 0x0a80, 0x0aff],
+  ['tamil', 0x0b80, 0x0bff],
+  ['telugu', 0x0c00, 0x0c7f],
+  ['kannada', 0x0c80, 0x0cff],
+  ['malayalam', 0x0d00, 0x0d7f],
+  ['thai', 0x0e00, 0x0e7f],
+  ['hangul', 0x1100, 0x11ff],
+  ['hangul', 0x3130, 0x318f],
+  ['hangul', 0xac00, 0xd7af],
+  ['kana', 0x3040, 0x30ff],
+  ['kana', 0x31f0, 0x31ff],
+  ['han', 0x3400, 0x4dbf],
+  ['han', 0x4e00, 0x9fff],
+  ['han', 0xf900, 0xfaff],
+];
 
 /**
  * @param {string} text
- * @returns {'latin' | 'cyrillic' | 'greek' | 'cjk' | 'other'}
+ * @returns {string}
  */
 function dominantScript(text) {
-  let latin = 0;
-  let cyr = 0;
-  let greek = 0;
-  let cjk = 0;
+  const counts = {};
   for (const ch of text) {
     const cp = ch.codePointAt(0) || 0;
-    if ((cp >= 0x41 && cp <= 0x7a) || (cp >= 0xc0 && cp <= 0x024f)) {
-      latin += 1;
-    } else if (cp >= 0x0400 && cp <= 0x04ff) {
-      cyr += 1;
-    } else if (cp >= 0x0370 && cp <= 0x03ff) {
-      greek += 1;
-    } else if (cp >= 0x3000 && cp <= 0x9fff) {
-      cjk += 1;
+    let name = null;
+    if ((cp >= 0x41 && cp <= 0x7a) || (cp >= 0xc0 && cp <= 0x024f) ||
+        (cp >= 0x1e00 && cp <= 0x1eff)) {
+      name = 'latin';
+    } else {
+      for (const [script, lo, hi] of SCRIPT_RANGES) {
+        if (cp >= lo && cp <= hi) {
+          name = script;
+          break;
+        }
+      }
+    }
+    if (name) {
+      counts[name] = (counts[name] || 0) + 1;
     }
   }
-  const max = Math.max(latin, cyr, greek, cjk);
-  if (max === 0) {
-    return 'other';
+  let best = 'other';
+  let bestCount = 0;
+  for (const [name, count] of Object.entries(counts)) {
+    if (count > bestCount) {
+      best = name;
+      bestCount = count;
+    }
   }
-  if (max === cjk) {
-    return 'cjk';
-  }
-  if (max === cyr) {
-    return 'cyrillic';
-  }
-  if (max === greek) {
-    return 'greek';
-  }
-  return 'latin';
+  return best;
 }
 
 /**

@@ -37,6 +37,36 @@ export function normalizeWord(raw) {
     .toLowerCase();
 }
 
+/** [lo, hi, shard] Unicode ranges for non-Latin first characters. */
+const SHARD_RANGES = [
+  [0x0400, 0x04ff, 'cyr'],
+  [0x0500, 0x052f, 'cyr'],
+  [0x0370, 0x03ff, 'el'],
+  [0x1f00, 0x1fff, 'el'],
+  [0x0600, 0x06ff, 'arab'],
+  [0x0750, 0x077f, 'arab'],
+  [0x08a0, 0x08ff, 'arab'],
+  [0xfb50, 0xfdff, 'arab'],
+  [0xfe70, 0xfeff, 'arab'],
+  [0x0590, 0x05ff, 'hebr'],
+  [0x0900, 0x097f, 'deva'],
+  [0x0980, 0x09ff, 'beng'],
+  [0x0a80, 0x0aff, 'gujr'],
+  [0x0b80, 0x0bff, 'taml'],
+  [0x0c00, 0x0c7f, 'telu'],
+  [0x0c80, 0x0cff, 'knda'],
+  [0x0d00, 0x0d7f, 'mlym'],
+  [0x0e00, 0x0e7f, 'thai'],
+  [0x1100, 0x11ff, 'hangul'],
+  [0x3130, 0x318f, 'hangul'],
+  [0xac00, 0xd7af, 'hangul'],
+  [0x3040, 0x30ff, 'kana'],
+  [0x31f0, 0x31ff, 'kana'],
+  [0x3400, 0x4dbf, 'hani'],
+  [0x4e00, 0x9fff, 'hani'],
+  [0xf900, 0xfaff, 'hani'],
+];
+
 /**
  * @param {string} word
  * @returns {string}
@@ -50,11 +80,10 @@ export function shardKey(word) {
     return ch;
   }
   const code = ch.codePointAt(0) || 0;
-  if (code >= 0x0400 && code <= 0x04ff) {
-    return 'cyr';
-  }
-  if (code >= 0x0370 && code <= 0x03ff) {
-    return 'el';
+  for (const [lo, hi, key] of SHARD_RANGES) {
+    if (code >= lo && code <= hi) {
+      return key;
+    }
   }
   return '_';
 }

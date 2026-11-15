@@ -50,11 +50,19 @@ func New(cfg config.Config, log *slog.Logger) (*Server, error) {
 		return nil, fmt.Errorf("web root is not a directory: %s", cfg.WebRoot)
 	}
 
+	webFS := os.DirFS(cfg.WebRoot)
 	s := &Server{
 		cfg:     cfg,
 		catalog: model.DefaultCatalog(),
 		log:     log,
-		webFS:   os.DirFS(cfg.WebRoot),
+		webFS:   webFS,
+	}
+	if data, err := fs.ReadFile(webFS, "models/registry.json"); err == nil {
+		if c, err := model.CatalogFromRegistry(data); err == nil {
+			s.catalog = c
+		} else {
+			log.Warn("models registry ignored", "err", err)
+		}
 	}
 
 	mux := http.NewServeMux()

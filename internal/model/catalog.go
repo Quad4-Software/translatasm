@@ -2,6 +2,10 @@
 package model
 
 import (
+	"encoding/json"
+	"fmt"
+	"math"
+	"path"
 	"slices"
 	"strings"
 )
@@ -51,35 +55,66 @@ type pairSpec struct {
 }
 
 var languageLabels = map[string]string{
-	"bg": "Bulgarian",
-	"ca": "Catalan",
-	"cs": "Czech",
-	"da": "Danish",
-	"de": "German",
-	"el": "Greek",
-	"en": "English",
-	"es": "Spanish",
-	"et": "Estonian",
-	"fi": "Finnish",
-	"fr": "French",
-	"hr": "Croatian",
-	"hu": "Hungarian",
-	"id": "Indonesian",
-	"it": "Italian",
-	"nb": "Norwegian",
-	"nl": "Dutch",
-	"pl": "Polish",
-	"pt": "Portuguese",
-	"ro": "Romanian",
-	"ru": "Russian",
-	"sk": "Slovak",
-	"sl": "Slovenian",
-	"sv": "Swedish",
-	"tr": "Turkish",
-	"uk": "Ukrainian",
-	"vi": "Vietnamese",
-	"zh": "Chinese",
-	"ja": "Japanese",
+	"af":      "Afrikaans",
+	"ar":      "Arabic",
+	"az":      "Azerbaijani",
+	"be":      "Belarusian",
+	"bg":      "Bulgarian",
+	"bn":      "Bengali",
+	"bs":      "Bosnian",
+	"ca":      "Catalan",
+	"cs":      "Czech",
+	"da":      "Danish",
+	"de":      "German",
+	"el":      "Greek",
+	"en":      "English",
+	"es":      "Spanish",
+	"et":      "Estonian",
+	"eu":      "Basque",
+	"fa":      "Persian",
+	"fi":      "Finnish",
+	"fr":      "French",
+	"gl":      "Galician",
+	"gu":      "Gujarati",
+	"he":      "Hebrew",
+	"hi":      "Hindi",
+	"hr":      "Croatian",
+	"hu":      "Hungarian",
+	"id":      "Indonesian",
+	"is":      "Icelandic",
+	"it":      "Italian",
+	"ja":      "Japanese",
+	"kn":      "Kannada",
+	"ko":      "Korean",
+	"lt":      "Lithuanian",
+	"lv":      "Latvian",
+	"ml":      "Malayalam",
+	"mr":      "Marathi",
+	"ms":      "Malay",
+	"mt":      "Maltese",
+	"nb":      "Norwegian Bokmål",
+	"nl":      "Dutch",
+	"nn":      "Norwegian Nynorsk",
+	"pl":      "Polish",
+	"pt":      "Portuguese",
+	"ro":      "Romanian",
+	"ru":      "Russian",
+	"sk":      "Slovak",
+	"sl":      "Slovenian",
+	"sq":      "Albanian",
+	"sr":      "Serbian",
+	"sv":      "Swedish",
+	"ta":      "Tamil",
+	"te":      "Telugu",
+	"th":      "Thai",
+	"tl":      "Tagalog",
+	"tr":      "Turkish",
+	"ug":      "Uyghur",
+	"uk":      "Ukrainian",
+	"ur":      "Urdu",
+	"vi":      "Vietnamese",
+	"zh":      "Chinese",
+	"zh-hant": "Chinese (Traditional)",
 }
 
 // Bergamot S3 tiny packs plus curated Firefox Translations extras.
@@ -231,4 +266,129 @@ func (c Catalog) IDs() []string {
 		ids = append(ids, c.Models[i].ID)
 	}
 	return slices.Clone(ids)
+}
+
+// registryEntry mirrors one pair in web/models/registry.json as written by
+// scripts/fetch-assets.sh. Only the fields the catalog needs are decoded.
+type registryEntry struct {
+	From  string `json:"from"`
+	To    string `json:"to"`
+	Model struct {
+		Name string `json:"name"`
+		Size int64  `json:"size"`
+	} `json:"model"`
+	Lex struct {
+		Size int64 `json:"size"`
+	} `json:"lex"`
+	Vocab    fileSize `json:"vocab"`
+	SrcVocab fileSize `json:"srcvocab"`
+	TrgVocab fileSize `json:"trgvocab"`
+}
+
+type fileSize struct {
+	Size int64 `json:"size"`
+}
+
+// CatalogFromRegistry builds a Catalog from a models/registry.json document so
+// the advertised pairs always match the packs actually on disk.
+func CatalogFromRegistry(data []byte) (Catalog, error) {
+	var raw map[string]registryEntry
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return Catalog{}, fmt.Errorf("registry: %w", err)
+	}
+	pairs := make([]string, 0, len(raw))
+	for key := range raw {
+		pairs = append(pairs, key)
+	}
+	slices.Sort(pairs)
+
+	models := make([]Model, 0, len(pairs))
+	langs := map[string]bool{}
+	defaultIdx, firstEnIdx := -1, -1
+	for i, key := range pairs {
+		entry := raw[key]
+		from, to := entry.From, entry.To
+		if from == "" || to == "" {
+			from, to = key[:2], key[2:]
+		}
+		modelName := entry.Model.Name
+		dir := path.Dir(modelName)
+		tier := "tiny"
+		if strings.HasPrefix(dir, "/models/hq/") {
+			tier = "hq"
+		}
+		total := entry.Model.Size + entry.Lex.Size + entry.Vocab.Size + entry.SrcVocab.Size + entry.TrgVocab.Size
+		fromLabel := languageLabels[from]
+		if fromLabel == "" {
+			fromLabel = from
+		}
+		toLabel := languageLabels[to]
+		if toLabel == "" {
+			toLabel = to
+		}
+		models = append(models, Model{
+			ID:           tier + "-" + key,
+			Label:        fromLabel + " to " + toLabel,
+			Engine:       EngineBergamot,
+			Path:         dir,
+			From:         from,
+			To:           to,
+			Architecture: tier,
+			SizeHintMB:   math.Round(float64(total)/1048576*10) / 10,
+			SpeedRank:    4,
+			AccuracyRank: 4,
+		})
+		langs[from] = true
+		langs[to] = true
+		if from == "en" {
+			if firstEnIdx < 0 {
+				firstEnIdx = i
+			}
+			if to == "es" {
+				defaultIdx = i
+			}
+		}
+	}
+	if len(models) == 0 {
+		return Catalog{}, fmt.Errorf("registry: no pairs")
+	}
+	if defaultIdx < 0 {
+		defaultIdx = firstEnIdx
+	}
+	if defaultIdx < 0 {
+		defaultIdx = 0
+	}
+	models[defaultIdx].Default = true
+	return Catalog{
+		Models:    models,
+		Languages: languagesFor(langs),
+		Pivot:     "en",
+	}, nil
+}
+
+// languagesFor returns sorted Language entries (English first) for the given
+// set of codes, falling back to the code itself when unlabeled.
+func languagesFor(codes map[string]bool) []Language {
+	list := make([]string, 0, len(codes))
+	for code := range codes {
+		list = append(list, code)
+	}
+	slices.SortFunc(list, func(a, b string) int {
+		return strings.Compare(languageLabels[a], languageLabels[b])
+	})
+	out := make([]Language, 0, len(list)+1)
+	if codes["en"] {
+		out = append(out, Language{Code: "en", Label: languageLabels["en"]})
+	}
+	for _, code := range list {
+		if code == "en" {
+			continue
+		}
+		label := languageLabels[code]
+		if label == "" {
+			label = code
+		}
+		out = append(out, Language{Code: code, Label: label})
+	}
+	return out
 }

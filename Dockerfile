@@ -52,7 +52,7 @@ ENV GOPATH=/go \
 RUN --mount=type=cache,target=/root/.cache/go-build \
 	--mount=type=cache,target=/go/pkg/mod \
 	chmod +x scripts/fetch-assets.sh scripts/fetch-firefox-wasm.sh \
-	&& TRANSLATASM_EXTRAS="${TRANSLATASM_EXTRAS}" \
+	&& TRANSLATASM_S3_ONLY="$([ "${TRANSLATASM_EXTRAS}" = "0" ] && echo 1 || echo 0)" \
 		TRANSLATASM_CJK="${TRANSLATASM_CJK}" \
 		TRANSLATASM_PAIRS="${TRANSLATASM_PAIRS}" \
 		bash scripts/fetch-assets.sh \

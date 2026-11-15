@@ -17,8 +17,10 @@ python3 - "$ROOT" "$DICT_DIR" "$TMP" "$SCRIPT_DIR" "$LANGS_ARG" "$MAX_ENTRIES" <
 import gzip
 import json
 import os
+import re
 import shutil
 import sys
+import tarfile
 import urllib.error
 import urllib.request
 import xml.etree.ElementTree as ET
@@ -98,6 +100,42 @@ for lang in langs:
     print(f"built mono {lang}: {meta['entries']} entries")
 
 # FreeDict bilingual packs: eng <-> each non-English language when available.
+
+def fetch_freedict_tei(tei_name: str, tmp: str):
+    """Resolve the newest FreeDict release and extract its TEI source file."""
+    base = f"https://download.freedict.org/dictionaries/{tei_name}"
+    req = urllib.request.Request(base + "/", headers={"User-Agent": "translatasm-dicts/0.1"})
+    try:
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            html = resp.read().decode("utf-8", "replace")
+    except urllib.error.URLError as exc:
+        print(f"skip: {base}/ ({exc})")
+        return None
+    versions = re.findall(r'href="(\d{4}\.\d{2}\.\d{2})/"', html)
+    if not versions:
+        print(f"no FreeDict releases for {tei_name}")
+        return None
+    ver = sorted(versions)[-1]
+    src_url = f"{base}/{ver}/freedict-{tei_name}-{ver}.src.tar.xz"
+    dest = os.path.join(tmp, f"{tei_name}-{ver}.src.tar.xz")
+    if not fetch(src_url, dest):
+        return None
+    tei_path = os.path.join(tmp, f"{tei_name}.tei")
+    if not (os.path.isfile(tei_path) and os.path.getsize(tei_path) > 0):
+        with tarfile.open(dest, "r:xz") as tar:
+            member = next(
+                (m for m in tar.getmembers() if m.name.endswith(".tei")),
+                None,
+            )
+            if member is None:
+                print(f"no .tei inside {src_url}")
+                return None
+            src = tar.extractfile(member)
+            with open(tei_path, "wb") as out:
+                shutil.copyfileobj(src, out)
+    return tei_path
+
+
 for lang in langs:
     if lang == "en":
         continue
@@ -125,26 +163,7 @@ for lang in langs:
             print(f"present bi: {pair}")
             continue
         tei_name = f"{src_code}-{dst_code}"
-        urls = [
-            f"https://download.freedict.org/dictionaries/{tei_name}/{tei_name}.tei.xz",
-            f"https://download.freedict.org/dictionaries/{tei_name}/{tei_name}.tei",
-        ]
-        tei_path = None
-        for url in urls:
-            dest = os.path.join(tmp, os.path.basename(url))
-            if not fetch(url, dest):
-                continue
-            if dest.endswith(".xz"):
-                import lzma
-
-                plain = dest[: -3]
-                if not os.path.isfile(plain):
-                    with lzma.open(dest, "rb") as xz, open(plain, "wb") as out:
-                        shutil.copyfileobj(xz, out)
-                tei_path = plain
-            else:
-                tei_path = dest
-            break
+        tei_path = fetch_freedict_tei(tei_name, tmp)
         if not tei_path:
             print(f"no FreeDict TEI for {pair}")
             continue
@@ -190,9 +209,11 @@ for pair, meta in bi_meta.items():
         "attribution": "FreeDict",
     }
 
-# Keep fixture packs discoverable even when fetch skipped a language.
-for lang in langs:
-    meta_path = os.path.join(dict_dir, "mono", lang, "meta.json")
+# Keep every mono pack already on disk discoverable, even when this run only
+# built a subset of languages.
+mono_root = os.path.join(dict_dir, "mono")
+for lang in sorted(os.listdir(mono_root)) if os.path.isdir(mono_root) else []:
+    meta_path = os.path.join(mono_root, lang, "meta.json")
     if lang not in registry["mono"] and os.path.isfile(meta_path):
         with open(meta_path, encoding="utf-8") as f:
             meta = json.load(f)

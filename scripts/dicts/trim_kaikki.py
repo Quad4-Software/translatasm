@@ -51,16 +51,47 @@ def open_maybe_gzip(path: str):
     return open(path, "rt", encoding="utf-8")
 
 
+# (lo, hi, shard) Unicode ranges for non-Latin first characters.
+_SHARD_RANGES = [
+    (0x0400, 0x04FF, "cyr"),
+    (0x0500, 0x052F, "cyr"),
+    (0x0370, 0x03FF, "el"),
+    (0x1F00, 0x1FFF, "el"),
+    (0x0600, 0x06FF, "arab"),
+    (0x0750, 0x077F, "arab"),
+    (0x08A0, 0x08FF, "arab"),
+    (0xFB50, 0xFDFF, "arab"),
+    (0xFE70, 0xFEFF, "arab"),
+    (0x0590, 0x05FF, "hebr"),
+    (0x0900, 0x097F, "deva"),
+    (0x0980, 0x09FF, "beng"),
+    (0x0A80, 0x0AFF, "gujr"),
+    (0x0B80, 0x0BFF, "taml"),
+    (0x0C00, 0x0C7F, "telu"),
+    (0x0C80, 0x0CFF, "knda"),
+    (0x0D00, 0x0D7F, "mlym"),
+    (0x0E00, 0x0E7F, "thai"),
+    (0x1100, 0x11FF, "hangul"),
+    (0x3130, 0x318F, "hangul"),
+    (0xAC00, 0xD7AF, "hangul"),
+    (0x3040, 0x30FF, "kana"),
+    (0x31F0, 0x31FF, "kana"),
+    (0x3400, 0x4DBF, "hani"),
+    (0x4E00, 0x9FFF, "hani"),
+    (0xF900, 0xFAFF, "hani"),
+]
+
+
 def shard_key(word: str) -> str:
     if not word:
         return "_"
     ch = word[0].lower()
     if "a" <= ch <= "z":
         return ch
-    if "\u0400" <= ch <= "\u04ff":
-        return "cyr"
-    if "\u0370" <= ch <= "\u03ff":
-        return "el"
+    cp = ord(ch)
+    for lo, hi, key in _SHARD_RANGES:
+        if lo <= cp <= hi:
+            return key
     return "_"
 
 
